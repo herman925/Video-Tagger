@@ -5,56 +5,88 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Tagger App</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <!-- Plyr CSS -->
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/video.css">
+  <link rel="stylesheet" href="css/modern.css">
   <link rel="stylesheet" href="css/tags.css">
   <link rel="stylesheet" href="css/tagsummary.css">
   <link rel="stylesheet" href="css/shortcut_help.css">
+  <!-- Plyr JS (add before your scripts) -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
 </head>
-<body>
-  <div id="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
-  <div id="app-container">
+<body>  <div id="app-container">
+
     <section id="video-section" class="panel">
-      <h2 class="section-header"><span class="icon">🎬</span> Video Player</h2>
-      <div id="video-loader" style="display: block;">
-        <button id="load-local-btn">Load Local Video</button>
-        <span style="margin: 0 10px;">or</span>
-        <input type="text" id="youtube-url" placeholder="YouTube URL" style="width: 220px;">
-        <button id="load-youtube-btn">Load</button>
-        <div id="no-video-message" style="margin-top: 16px; color: #888;">No video loaded. Please select a file or enter a YouTube link.</div>
-        <input type="file" id="local-video-input" accept="video/*" style="display: none;" />
+      <div id="video-hero" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; position: relative;">        <!-- Hero Theme Toggle -->        <div id="theme-toggle-hero" class="theme-toggle-container">
+          <label class="theme-switch" for="theme-checkbox-hero" title="Toggle Dark/Light Theme">
+            <input type="checkbox" id="theme-checkbox-hero" />
+            <span class="slider round">
+              <span class="theme-icon sun">☀️</span>
+              <span class="theme-icon moon">🌙</span>
+            </span>
+          </label>
+          <div class="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
+        </div>
+
+        <h1 style="font-size:2.2em; margin-bottom: 32px; color:#3366cc;">Video Tagger</h1>
+        <div style="display: flex; gap: 24px; margin-bottom: 24px;">
+          <button id="load-local-btn" style="font-size:1.3em; width: 200px; padding: 18px 10px;">Load Local Video</button>
+          <span style="font-size:1.2em; color:#888; align-self:center;">or</span>
+          <input type="text" id="youtube-url" placeholder="YouTube URL" style="width: 210px; font-size:1.1em; padding: 14px 16px;">
+          <button id="load-youtube-btn" style="font-size:1.3em; padding: 18px 40px;">Open</button>
+        </div>
+        <div id="no-video-message" style="color: #888; font-size:1.15em;">Please load a local video file or enter a YouTube link.</div>
       </div>
       <div id="video-player" style="display: none;">
-        <video id="video" width="100%" controls>
+        <video id="video" width="100%">
           <source src="" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       </div>
-      <div id="controls" style="display: none;">
-        <input id="jump-time-input" type="text" placeholder="HH:MM:SS:mmm" style="width: 105px; margin-left: 0;">
-        <button id="jump-time-btn">Go</button>
+      <!-- New container for Jump Time and Add Tag -->
+      <div id="controls-tag-row" style="display: none;">
+        <div id="jump-controls-container">
+          <h3 class="section-header"><span class="icon">⏱️</span> Jump to Time</h3>
+          <div id="jump-controls">
+            <input id="jump-time-input" type="text" placeholder="HH:MM:SS.mmm">
+            <button id="jump-time-btn">Go</button>
+          </div>
+        </div>
+        <section id="tag-section" class="panel">
+          <h3 class="section-header"><span class="icon">🏷️</span> Add Tag</h3>
+          <div id="tag-input-row">
+            <input type="text" id="tag-input" placeholder="Enter tag...">
+            <button id="start-tag-btn">Mark Start</button>
+            <button id="end-tag-btn">Mark End</button>
+          </div>
+        </section>
       </div>
-      <div class="section-label timeline-label"><span class="icon">🕒</span> Timeline</div>
+      <h3 class="section-header timeline-label" style="display:none;"><span class="icon">🕒</span> Timeline</h3>
       <div id="timeline" class="timeline-panel" style="display: none;"></div>
     </section>
-    <aside id="sidebar">
-      <section id="tag-section" class="panel">
-        <h3 class="section-header"><span class="icon">🏷️</span> Add Tag</h3>
-        <div id="tag-input-row">
-          <input type="text" id="tag-input" placeholder="Enter tag...">
-          <button id="start-tag-btn">Start Tag</button>
-          <button id="end-tag-btn" disabled>End Tag</button>
-        </div>
-        <h3 class="section-header taglist-header"><span class="icon">📋</span> Tag List</h3>
-        <table id="tag-list-table">
-          <thead>
-            <tr><th>Start</th><th>End</th><th>Tag</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="tag-list-body">
-            <!-- Tag rows go here -->
-          </tbody>
-        </table>
-      </section>
+    <aside id="sidebar" style="display:none;">      <!-- Sidebar Theme Toggle -->      <div id="theme-toggle-sidebar" class="theme-toggle-container">
+        <label class="theme-switch" for="theme-checkbox-sidebar" title="Toggle Dark/Light Theme">
+          <input type="checkbox" id="theme-checkbox-sidebar" />
+          <span class="slider round">
+            <span class="theme-icon sun">☀️</span>
+            <span class="theme-icon moon">🌙</span>
+          </span>
+        </label>
+        <div class="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
+      </div>
+
+      <h3 class="section-header taglist-header"><span class="icon">📋</span> Tag List</h3>
+      <table id="tag-list-table">
+        <thead>
+          <tr><th>Start</th><th>End</th><th>Tag</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="tag-list-body">
+          <!-- Tag rows go here -->
+        </tbody>
+      </table>
       <section id="tag-summary-section" class="panel">
         <h3 class="section-header"><span class="icon">📊</span> Tag Summary</h3>
         <table id="tag-summary-table">
@@ -66,7 +98,7 @@
           </tbody>
         </table>
       </section>
-      <div class="section-label session-label"><span class="icon">💾</span> Session Actions</div>
+      <h3 class="section-header session-label"><span class="icon">💾</span> Session Actions</h3>
       <div id="export-row" class="button-group">
         <button id="export-btn" title="Export tags to CSV">Export</button>
         <button id="save-btn" title="Save current session">Save</button>
@@ -74,6 +106,8 @@
       </div>
     </aside>
   </div>
+  <!-- Move file input outside of video section to prevent Plyr interference -->
+  <input type="file" id="local-video-input" accept="video/*" style="display: none;" />
   <script src="js/utils.js"></script>
   <script src="js/video.js"></script>
   <script src="js/tag.js"></script>
@@ -84,5 +118,46 @@
   <script src="js/shortcut.js"></script>
   <script src="js/shortcut_help.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Plyr with only the controls you want (no upload/download)
+      window.plyrPlayer = new Plyr('#video', {
+        controls: [
+          'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'
+        ]
+      });
+      // Hide hero and show app when video is loaded
+      function showApp() {
+        var el;
+        // Use the potentially renamed ID 'video-loader'
+        el = document.getElementById('video-loader') || document.getElementById('video-hero');
+        if (el) el.style.display = 'none';
+        el = document.getElementById('video-player'); if (el) el.style.display = '';
+        // Show the new combined controls row
+        el = document.getElementById('controls-tag-row'); if (el) el.style.display = 'flex'; // Use flex for the row
+        el = document.querySelector('.timeline-label'); if (el) el.style.display = 'block'; // Show timeline header
+        el = document.getElementById('timeline'); if (el) el.style.display = 'block'; // Show timeline itself
+        el = document.getElementById('sidebar'); if (el) el.style.display = 'flex'; // Use flex for sidebar
+        // No longer need to show tag-section separately
+      }
+      // Patch for video.js compatibility: alias video-hero as video-loader
+      var videoLoader = document.getElementById('video-hero');
+      if (videoLoader && !document.getElementById('video-loader')) {
+        videoLoader.id = 'video-loader';
+      }
+      // YouTube button listener (Local file loading is handled in video.js)
+      document.getElementById('load-youtube-btn').addEventListener('click', function() {
+        if (document.getElementById('youtube-url').value.trim()) {
+          // The actual YouTube loading logic is in video.js, which should call showApp
+          // We might need to trigger that logic here or ensure video.js calls showApp
+        }
+      });
+      // Make showApp globally accessible for video.js
+      window.showApp = showApp;
+
+      // Initialize other main script components AFTER DOM is ready
+      // The calls are inside the DOMContentLoaded listener in js/main.js
+    });
+  </script>
 </body>
 </html>
