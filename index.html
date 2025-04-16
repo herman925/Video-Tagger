@@ -8,10 +8,13 @@
   <link rel="stylesheet" href="css/video.css">
   <link rel="stylesheet" href="css/tags.css">
   <link rel="stylesheet" href="css/tagsummary.css">
+  <link rel="stylesheet" href="css/shortcut_help.css">
 </head>
 <body>
+  <div id="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
   <div id="app-container">
-    <section id="video-section">
+    <section id="video-section" class="panel">
+      <h2 class="section-header"><span class="icon">🎬</span> Video Player</h2>
       <div id="video-loader" style="display: block;">
         <button id="load-local-btn">Load Local Video</button>
         <span style="margin: 0 10px;">or</span>
@@ -27,22 +30,21 @@
         </video>
       </div>
       <div id="controls" style="display: none;">
-        <button id="play-btn">Play</button>
-        <button id="pause-btn">Pause</button>
-        <input id="seek-bar" type="range" min="0" max="100" value="0">
-        <span id="current-time">00:00:00</span> / <span id="duration">00:00:00</span>
-        <input id="jump-time-input" type="text" placeholder="HH:MM:SS:mmm" style="width: 105px; margin-left: 10px;">
+        <input id="jump-time-input" type="text" placeholder="HH:MM:SS:mmm" style="width: 105px; margin-left: 0;">
         <button id="jump-time-btn">Go</button>
       </div>
-      <div id="timeline" style="display: none;"></div>
+      <div class="section-label timeline-label"><span class="icon">🕒</span> Timeline</div>
+      <div id="timeline" class="timeline-panel" style="display: none;"></div>
     </section>
     <aside id="sidebar">
-      <section id="tag-section">
+      <section id="tag-section" class="panel">
+        <h3 class="section-header"><span class="icon">🏷️</span> Add Tag</h3>
         <div id="tag-input-row">
           <input type="text" id="tag-input" placeholder="Enter tag...">
           <button id="start-tag-btn">Start Tag</button>
           <button id="end-tag-btn" disabled>End Tag</button>
         </div>
+        <h3 class="section-header taglist-header"><span class="icon">📋</span> Tag List</h3>
         <table id="tag-list-table">
           <thead>
             <tr><th>Start</th><th>End</th><th>Tag</th><th>Actions</th></tr>
@@ -52,8 +54,8 @@
           </tbody>
         </table>
       </section>
-      <section id="tag-summary-section">
-        <h3>Tag Summary</h3>
+      <section id="tag-summary-section" class="panel">
+        <h3 class="section-header"><span class="icon">📊</span> Tag Summary</h3>
         <table id="tag-summary-table">
           <thead>
             <tr><th>Tag</th><th>Frequency</th></tr>
@@ -63,10 +65,11 @@
           </tbody>
         </table>
       </section>
-      <div id="export-row">
-        <button id="export-btn">Export</button>
-        <button id="save-btn">Save</button>
-        <button id="load-btn">Load</button>
+      <div class="section-label session-label"><span class="icon">💾</span> Session Actions</div>
+      <div id="export-row" class="button-group">
+        <button id="export-btn" title="Export tags to CSV">Export</button>
+        <button id="save-btn" title="Save current session">Save</button>
+        <button id="load-btn" title="Load a saved session">Load</button>
       </div>
     </aside>
   </div>
@@ -75,7 +78,10 @@
   <script src="js/tag.js"></script>
   <script src="js/tagsummary.js"></script>
   <script src="js/export.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/load.js"></script>
   <script src="js/shortcut.js"></script>
+  <script src="js/shortcut_help.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

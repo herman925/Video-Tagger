@@ -1,0 +1,150 @@
+/* Modern, clean, card-based UI for Video Tagger */
+body {
+  background: #f5f7fa;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  color: #222;
+  margin: 0;
+  padding: 0;
+}
+#app-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 32px;
+  padding: 32px 16px 32px 16px;
+  max-width: 1400px;
+  margin: auto;
+}
+.panel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(60,60,60,0.08);
+  padding: 28px 28px 24px 28px;
+  margin-bottom: 24px;
+}
+.section-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3366cc;
+}
+.section-label {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 18px 0 10px 0;
+  color: #555;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.timeline-panel {
+  background: #eaf2fb;
+  border-radius: 8px;
+  min-height: 32px;
+  margin-bottom: 12px;
+  position: relative;
+}
+#timeline {
+  min-height: 32px;
+}
+#controls {
+  margin: 12px 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#tag-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+#tag-input {
+  flex: 1 1 120px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  padding: 7px 10px;
+  font-size: 1rem;
+}
+#start-tag-btn, #end-tag-btn {
+  border: none;
+  border-radius: 6px;
+  background: #3366cc;
+  color: #fff;
+  padding: 7px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#start-tag-btn:disabled, #end-tag-btn:disabled {
+  background: #b5c6e0;
+  color: #eee;
+  cursor: not-allowed;
+}
+#tag-list-table, #tag-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  background: #fafbfc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+#tag-list-table th, #tag-list-table td, #tag-summary-table th, #tag-summary-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+#tag-list-table th, #tag-summary-table th {
+  background: #eaf2fb;
+  color: #3366cc;
+  font-weight: 600;
+}
+#tag-list-table td {
+  background: #fff;
+}
+#tag-list-table tr:last-child td, #tag-summary-table tr:last-child td {
+  border-bottom: none;
+}
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+#export-row button, .button-group button {
+  border: none;
+  border-radius: 6px;
+  background: #3366cc;
+  color: #fff;
+  padding: 8px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(51,102,204,0.07);
+}
+#export-row button:hover, .button-group button:hover {
+  background: #2351a1;
+}
+.icon {
+  font-size: 1.2em;
+  vertical-align: middle;
+}
+#sidebar {
+  min-width: 350px;
+  max-width: 420px;
+}
+@media (max-width: 1100px) {
+  #app-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+  #sidebar {
+    max-width: 100%;
+    min-width: 0;
+  }
+}

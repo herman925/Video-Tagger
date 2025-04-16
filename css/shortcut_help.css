@@ -1,0 +1,63 @@
+/* Shortcut Help Modal Styles */
+#shortcut-help-modal {
+  position: fixed;
+  z-index: 10000;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  display: none;
+}
+.shortcut-modal-backdrop {
+  position: absolute;
+  width: 100vw; height: 100vh;
+  background: rgba(30, 40, 60, 0.45);
+  top: 0; left: 0;
+}
+.shortcut-modal-content {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(30,40,60,0.12);
+  padding: 32px 32px 24px 32px;
+  min-width: 380px;
+  max-width: 98vw;
+}
+.shortcut-modal-content h2 {
+  margin-top: 0;
+  color: #3366cc;
+  font-size: 1.35rem;
+  margin-bottom: 18px;
+}
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+  font-size: 1rem;
+}
+.shortcut-table th, .shortcut-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+.shortcut-table th {
+  background: #eaf2fb;
+  color: #3366cc;
+  font-weight: 600;
+}
+.shortcut-table tr:last-child td {
+  border-bottom: none;
+}
+#close-shortcut-modal {
+  background: #3366cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 24px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+#close-shortcut-modal:hover {
+  background: #2351a1;
+}

@@ -1,4 +1,4 @@
-// Video controls and timeline logic (interval tag support, improved scrubber, Go, timeline min width)
+// Video controls and timeline logic (interval tag support, minimalist controls, jump-to-time only)
 function initVideo() {
   const videoLoader = document.getElementById('video-loader');
   const videoPlayer = document.getElementById('video-player');
@@ -10,7 +10,6 @@ function initVideo() {
   const loadYoutubeBtn = document.getElementById('load-youtube-btn');
   const youtubeUrlInput = document.getElementById('youtube-url');
   const noVideoMsg = document.getElementById('no-video-message');
-  const seekBar = document.getElementById('seek-bar');
   const jumpTimeInput = document.getElementById('jump-time-input');
   const jumpTimeBtn = document.getElementById('jump-time-btn');
 
@@ -36,7 +35,6 @@ function initVideo() {
     localVideoInput.value = '';
     localVideoInput.click();
   });
-
   localVideoInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -82,28 +80,11 @@ function initVideo() {
     videoPlayer.appendChild(iframe);
     showPlayer();
     noVideoMsg.style.display = 'none';
-    controls.style.display = 'none';
+    controls.style.display = 'flex';
     window.currentVideoSource = ytUrl;
   });
 
-  // Scrubbing bar (seekBar) logic
-  video.addEventListener('timeupdate', () => {
-    if (!isNaN(video.duration)) {
-      seekBar.value = (video.currentTime / video.duration) * 100;
-    }
-  });
-  video.addEventListener('loadedmetadata', () => {
-    seekBar.max = 100;
-    seekBar.value = 0;
-    updateTimelineMarkers(window._timelineTags);
-  });
-  seekBar.addEventListener('input', () => {
-    if (video.duration) {
-      video.currentTime = (seekBar.value / 100) * video.duration;
-    }
-  });
-
-  // Go button logic
+  // Go button logic only
   jumpTimeBtn.addEventListener('click', jumpToTime);
   jumpTimeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') jumpToTime();
@@ -150,10 +131,10 @@ function initVideo() {
       bar.style.background = '#5b9fff';
       bar.style.borderRadius = '6px';
       bar.style.opacity = '0.7';
-      bar.title = `${formatTime(tag.start, true)} - ${formatTime(tag.end, true)}\n${tag.label}`;
+      bar.title = `${tag.start.toFixed(3)} - ${tag.end.toFixed(3)}\n${tag.label}`;
       bar.tabIndex = 0;
       bar.setAttribute('role', 'button');
-      bar.setAttribute('aria-label', `Jump to ${formatTime(tag.start, true)}: ${tag.label}`);
+      bar.setAttribute('aria-label', `Jump to ${tag.start.toFixed(3)}: ${tag.label}`);
       bar.addEventListener('click', () => {
         if (videoPlayer.contains(video)) {
           video.currentTime = tag.start;
