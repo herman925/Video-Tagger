@@ -51,7 +51,8 @@ A browser-based video tagging tool for timestamp coding, tag management, and sum
 | Ctrl + Left Arrow      | Jump backward 30 seconds                 |
 | Ctrl + Right Arrow     | Jump forward 30 seconds                  |
 | Space Bar              | Play/Pause                               |
-| T                      | Add current time to tag list             |
+| I                      | Add start time to tag list               |
+| O                      | Add end time to tag list                 |
 
 ---
 
