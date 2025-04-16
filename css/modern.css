@@ -50,8 +50,27 @@ body {
   position: relative;
 }
 #timeline {
-  min-height: 32px;
+  min-height: 100px;
+  position: relative;
 }
+.timeline-interval {
+  position: absolute;
+  height: 16px;
+  border-radius: 6px;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.timeline-interval-row-0 { top: 6px; }
+.timeline-interval-row-1 { top: 28px; }
+.timeline-interval-row-2 { top: 50px; }
+.timeline-interval-row-3 { top: 72px; }
+.timeline-interval-row-4 { top: 94px; }
+.timeline-interval-color-0 { background: #5b9fff; }
+.timeline-interval-color-1 { background: #ffb347; }
+.timeline-interval-color-2 { background: #7ed957; }
+.timeline-interval-color-3 { background: #e05d5d; }
+.timeline-interval-color-4 { background: #a17fff; }
 #controls {
   margin: 12px 0 6px 0;
   display: flex;

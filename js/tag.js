@@ -79,11 +79,13 @@ function initTags() {
 
   // End Tag (records end time and label)
   endTagBtn.addEventListener('click', () => {
+    console.log('[tag] endTagBtn click, tagInProgress:', tagInProgress, 'label:', tagInput.value.trim(), 'video.currentTime:', video.currentTime);
     if (!tagInProgress) return;
     let label = tagInput.value.trim();
     if (!label) label = '9999';
     const end = video.currentTime;
     window._timelineTags.push({ start: tagInProgress.start, end, label });
+    console.log('[tag] pushed tag:', { start: tagInProgress.start, end, label }, 'window._timelineTags:', window._timelineTags);
     tagInProgress = null;
     tagInput.value = '';
     startTagBtn.disabled = false;

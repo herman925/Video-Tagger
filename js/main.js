@@ -11,8 +11,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const durationLabel = document.getElementById('duration');
   
   // --- Play/Pause Button Logic ---
-  playBtn.addEventListener('click', () => video.play());
-  pauseBtn.addEventListener('click', () => video.pause());
+  if (playBtn) playBtn.addEventListener('click', () => video.play());
+  if (pauseBtn) pauseBtn.addEventListener('click', () => video.pause());
 
   // --- Time Label Update ---
   function formatTime(seconds) {
@@ -27,9 +27,15 @@ window.addEventListener('DOMContentLoaded', () => {
     currentTimeLabel.textContent = formatTime(video.currentTime);
     durationLabel.textContent = formatTime(video.duration);
   }
-  video.addEventListener('timeupdate', updateTimeLabels);
-  video.addEventListener('loadedmetadata', updateTimeLabels);
-  seekBar.addEventListener('input', () => {
+  video.addEventListener('timeupdate', () => {
+    if (currentTimeLabel) currentTimeLabel.textContent = formatTime(video.currentTime);
+    if (durationLabel) durationLabel.textContent = formatTime(video.duration);
+  });
+  video.addEventListener('loadedmetadata', () => {
+    if (currentTimeLabel) currentTimeLabel.textContent = formatTime(video.currentTime);
+    if (durationLabel) durationLabel.textContent = formatTime(video.duration);
+  });
+  if (seekBar) seekBar.addEventListener('input', () => {
     if (video.duration) {
       video.currentTime = (seekBar.value / 100) * video.duration;
     }

@@ -14,19 +14,10 @@ function initVideo() {
   const jumpTimeBtn = document.getElementById('jump-time-btn');
 
   // Helper: Show/hide loader and player sections
-  function showLoader() {
-    videoLoader.style.display = 'block';
-    videoPlayer.style.display = 'none';
-    controls.style.display = 'none';
-    timeline.style.display = 'none';
-    // Remove any YouTube embed if present
-    const yt = document.getElementById('youtube-embed');
-    if (yt) yt.remove();
-  }
   function showPlayer() {
     videoLoader.style.display = 'none';
     videoPlayer.style.display = 'block';
-    controls.style.display = 'flex';
+    controls.style.display = 'block';
     timeline.style.display = 'block';
   }
 
@@ -80,13 +71,13 @@ function initVideo() {
     videoPlayer.appendChild(iframe);
     showPlayer();
     noVideoMsg.style.display = 'none';
-    controls.style.display = 'flex';
+    controls.style.display = 'block';
     window.currentVideoSource = ytUrl;
   });
 
   // Go button logic only
-  jumpTimeBtn.addEventListener('click', jumpToTime);
-  jumpTimeInput.addEventListener('keydown', (e) => {
+  if (jumpTimeBtn) jumpTimeBtn.addEventListener('click', jumpToTime);
+  if (jumpTimeInput) jumpTimeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') jumpToTime();
   });
   function jumpToTime() {
@@ -113,36 +104,111 @@ function initVideo() {
   // --- Timeline Intervals ---
   window._timelineTags = window._timelineTags || [];
   function updateTimelineMarkers(tagList) {
+  console.log('[timeline] updateTimelineMarkers called', tagList);
     timeline.innerHTML = '';
     if (!video.duration || !Array.isArray(tagList)) return;
-    tagList.forEach(tag => {
+
+    // Sort tags by start time
+    const sortedTags = [...tagList].sort((a, b) => a.start - b.start);
+  console.log('[timeline] sortedTags', sortedTags);
+    // Track for each row (0-4) the latest end time
+    const rowEndTimes = [0, 0, 0, 0, 0];
+    const tagRows = [];
+
+    // Assign row to each tag
+    sortedTags.forEach(tag => {
+      let assignedRow = 0;
+      for (let row = 0; row < 5; row++) {
+        if (rowEndTimes[row] <= tag.start) {
+          assignedRow = row;
+          rowEndTimes[row] = tag.end;
+          break;
+        }
+        if (row === 4) {
+          // All rows overlap, just put in last row
+          assignedRow = 4;
+          rowEndTimes[4] = Math.max(rowEndTimes[4], tag.end);
+        }
+      }
+      tagRows.push({ tag, row: assignedRow });
+    console.log(`[timeline] assigned tag '${tag.label}' [${tag.start}, ${tag.end}] to row ${assignedRow}`);
+    });
+
+    // Render bars
+    console.log('[timeline] tagRows', tagRows);
+tagRows.forEach(({ tag, row }, idx) => {
       if (typeof tag.start !== 'number' || typeof tag.end !== 'number' || tag.start < 0 || tag.end > video.duration || tag.end < tag.start) return;
-      // Create a bar for the interval, min width for same start/end
       let left = (tag.start / video.duration) * 100;
       let width = ((tag.end - tag.start) / video.duration) * 100;
-      if (width < 0.5) width = 0.5; // minimum width in percent for visibility
+      if (width < 0.5) width = 0.5;
       const bar = document.createElement('div');
-      bar.className = 'timeline-interval';
-      bar.style.position = 'absolute';
+      bar.className = `timeline-interval timeline-interval-row-${row} timeline-interval-color-${row}`;
       bar.style.left = `${left}%`;
       bar.style.width = `${width}%`;
-      bar.style.top = '6px';
-      bar.style.height = '16px';
-      bar.style.background = '#5b9fff';
-      bar.style.borderRadius = '6px';
-      bar.style.opacity = '0.7';
       bar.title = `${tag.start.toFixed(3)} - ${tag.end.toFixed(3)}\n${tag.label}`;
       bar.tabIndex = 0;
       bar.setAttribute('role', 'button');
       bar.setAttribute('aria-label', `Jump to ${tag.start.toFixed(3)}: ${tag.label}`);
-      bar.addEventListener('click', () => {
-        if (videoPlayer.contains(video)) {
+      bar.dataset.tagIdx = idx.toString();
+      timeline.appendChild(bar);
+    console.log(`[timeline] rendered bar for tag '${tag.label}' [${tag.start}, ${tag.end}] on row ${row}`);
+    });
+
+    // Click handler for context menu
+    timeline.onclick = function(e) {
+      // Get click position as percent
+      const rect = timeline.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      const time = percent * video.duration;
+      // Find all tags covering this time
+      const overlapping = tagRows.filter(({ tag }) => tag.start <= time && tag.end >= time);
+      if (overlapping.length === 0) return;
+      if (overlapping.length === 1) {
+        // Jump directly
+        video.currentTime = overlapping[0].tag.start;
+        video.focus();
+        return;
+      }
+      // Show context menu
+      let menu = document.getElementById('timeline-context-menu');
+      if (menu) menu.remove();
+      menu = document.createElement('div');
+      menu.id = 'timeline-context-menu';
+      menu.style.position = 'absolute';
+      menu.style.left = `${x}px`;
+      menu.style.top = `${e.clientY - rect.top}px`;
+      menu.style.background = '#fff';
+      menu.style.border = '1px solid #bbb';
+      menu.style.borderRadius = '6px';
+      menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.13)';
+      menu.style.zIndex = 1000;
+      menu.style.padding = '6px 0';
+      menu.style.minWidth = '120px';
+      overlapping.forEach(({ tag }) => {
+        const item = document.createElement('div');
+        item.textContent = `${tag.label} (${tag.start.toFixed(2)}s)`;
+        item.style.padding = '6px 18px';
+        item.style.cursor = 'pointer';
+        item.onmouseenter = () => item.style.background = '#eaf2fb';
+        item.onmouseleave = () => item.style.background = '';
+        item.onclick = (ev) => {
           video.currentTime = tag.start;
           video.focus();
+          menu.remove();
+          ev.stopPropagation();
+        };
+        menu.appendChild(item);
+      });
+      timeline.appendChild(menu);
+      // Remove menu on outside click
+      document.addEventListener('mousedown', function handler(ev) {
+        if (!menu.contains(ev.target)) {
+          menu.remove();
+          document.removeEventListener('mousedown', handler);
         }
       });
-      timeline.appendChild(bar);
-    });
+    };
   }
   window.updateTimelineMarkers = updateTimelineMarkers;
 
