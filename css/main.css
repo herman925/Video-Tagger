@@ -2,37 +2,185 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f9f9fb;
-  color: #222;
+  background: var(--bg-color); /* Use CSS Variable */
+  color: var(--text-color); /* Use CSS Variable */
+  position: relative; /* Needed for absolute positioning of toggle *if* it's direct child */
+  min-height: 100vh; /* Ensure body takes full height */
 }
+
+/* Theme Toggle Switch Styles */
+/* Styles for the switch itself (.theme-switch, .slider) remain the same */
+
+/* Common container styles */
+.theme-toggle-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: absolute; /* Position both absolutely */
+  z-index: 1001; /* Ensure it's above other elements */
+}
+
+/* Container for the switch inside the sidebar */
+#theme-toggle-sidebar {
+  top: 15px; /* Adjust as needed */
+  right: 24px; /* Adjust as needed */
+}
+
+/* Container for the switch inside the hero section */
+#theme-toggle-hero {
+  top: 20px; /* Adjust as needed */
+  right: 30px; /* Adjust as needed */
+}
+
+/* Common label text style */
+.theme-toggle-label {
+  font-size: 0.9em;
+  color: var(--text-color); /* Use theme text color */
+  margin-top: 4px;
+}
+
+/* Specific label style for hero if needed (e.g., different color) */
+#theme-toggle-hero .theme-toggle-label {
+  /* color: #555; */ /* Example: slightly different color for hero */
+}
+
+
 #app-container {
   display: flex;
   flex-direction: row;
-  height: 100vh;
+  height: 90vh; /* Adjust height to leave some margin */
+  max-width: 1080px; /* Limit max width for ultrawide */
+  margin: auto; /* Center container both horizontally and vertically */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%; /* Ensure it takes full width up to max-width */
 }
 #video-section {
-  flex: 2;
-  background: #fff;
+  flex: 3; /* Give video more space */
+  background: var(--panel-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   padding: 32px 24px 24px 32px;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+  box-shadow: 2px 0 8px var(--panel-shadow); /* Use CSS Variable */
 }
+
+/* New row for Jump Time and Add Tag controls */
+#controls-tag-row {
+  display: flex;
+  justify-content: space-between; /* Puts jump on left, tag on right */
+  align-items: flex-start; /* Align items to the top */
+  width: 95%; /* Occupy full width of video-section */
+  margin-bottom: 20px; /* Space below the row */
+  gap: 20px; /* Space between jump and tag sections */
+}
+
+/* Container for Jump controls + title */
+#jump-controls-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0; /* Prevent container from shrinking */
+}
+
+/* Remove margin from header inside this container */
+#jump-controls-container .section-header {
+  margin-top: 0;
+  margin-bottom: 8px; /* Space between title and controls */
+}
+
+#jump-controls {
+  display: flex;
+  align-items: center;
+  /* flex-shrink: 0; Moved to container */
+}
+
+#jump-controls input {
+  width: 110px; /* Specific width for jump input */
+  margin-right: 8px;
+  /* Match tag input style */
+  padding: 6px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--input-border-color); /* Use CSS Variable */
+  background-color: var(--panel-bg); /* Match panel background */
+  color: var(--text-color); /* Match text color */
+  box-sizing: border-box; /* Ensure padding is included in height */
+  font-size: inherit; /* Ensure font size matches */
+}
+
+/* Ensure tag section within the row doesn't have extra panel padding/margin */
+#controls-tag-row #tag-section {
+  flex-grow: 1; /* Allow tag section to take remaining space */
+  padding: 0;
+  margin: 0;
+  box-shadow: none; /* Remove panel shadow if not desired here */
+  border: none; /* Remove panel border if not desired here */
+}
+
+#controls-tag-row #tag-section .section-header {
+  margin-top: 0; /* Adjust header margin if needed */
+}
+
 #sidebar {
   flex: 1;
-  background: #f5f6fa;
+  min-width: 300px; /* Minimum width for sidebar */
+  max-width: 500px; /* Maximum width for sidebar */
+  background: var(--sidebar-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
   padding: 32px 24px 24px 24px;
-  border-left: 1px solid #e0e0e0;
+  border-left: 1px solid var(--border-color); /* Use CSS Variable */
+  position: relative; /* Added for positioning context */
 }
+
+/* Consistent Section Header Styling */
+.section-header {
+  font-size: 1.1em;
+  font-weight: 500;
+  color: var(--text-color); /* Use CSS Variable */
+  margin-bottom: 12px;
+  margin-top: 20px; /* Add some space above headers */
+  display: flex;
+  align-items: center;
+}
+
+.section-header .icon {
+  margin-right: 8px;
+  font-size: 1.2em; /* Slightly larger icon */
+}
+
+/* Remove old section-label styles if they exist */
+.section-label {
+  /* display: none; or remove rules */
+  color: var(--text-color); /* Use CSS Variable if kept */
+}
+
+
 @media (max-width: 900px) {
   #app-container {
     flex-direction: column;
+    height: auto; /* Allow height to adjust */
+    max-width: 100%; /* Remove max-width constraint */
   }
   #video-section, #sidebar {
     padding: 16px;
+    min-width: unset; /* Remove min/max width constraints */
+    max-width: unset;
+    border-left: none; /* Remove border when stacked */
+  }
+
+  #controls-tag-row {
+    flex-direction: column; /* Stack controls on smaller screens */
+    align-items: stretch; /* Stretch items to full width */
+    gap: 15px;
+  }
+
+  #jump-controls {
+    justify-content: flex-start; /* Align jump controls left */
+  }
+
+  #controls-tag-row #tag-section {
+    margin-left: 0; /* Remove left margin when stacked */
   }
 }
