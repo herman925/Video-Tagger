@@ -60,3 +60,9 @@
 .tag-delete-btn:hover {
   color: #e74c3c; /* Keep delete color distinct */
 }
+/* Reduce timestamp font size in tag list table */
+#tag-list-table td:nth-child(1),
+#tag-list-table td:nth-child(2) {
+  font-size: 0.80em; /* Smaller timestamp text */
+  white-space: nowrap; /* Prevent line wrap */
+}

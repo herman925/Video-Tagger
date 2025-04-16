@@ -120,12 +120,6 @@
   <script src="js/main.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize Plyr with only the controls you want (no upload/download)
-      window.plyrPlayer = new Plyr('#video', {
-        controls: [
-          'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'
-        ]
-      });
       // Hide hero and show app when video is loaded
       function showApp() {
         var el;
@@ -159,5 +153,7 @@
       // The calls are inside the DOMContentLoaded listener in js/main.js
     });
   </script>
+  <!-- Add YouTube IFrame Player API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

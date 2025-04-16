@@ -57,7 +57,11 @@ body {
   width: 100%; /* Ensure it takes full width up to max-width */
 }
 #video-section {
-  flex: 2; /* Give video less space relative to sidebar */
+  flex-basis: 60%; /* Use 60% of the container width */
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 320px;
+  max-width: 70vw;
   background: var(--panel-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
@@ -122,9 +126,11 @@ body {
 }
 
 #sidebar {
-  flex: 1.5; /* Give sidebar more relative space */
-  min-width: 350px; /* Slightly increase min-width */
-  max-width: 500px; /* Maximum width for sidebar */
+  flex-basis: 40%; /* Use 40% of the container width */
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 350px;
+  max-width: 600px; /* Maximum width for sidebar */
   background: var(--sidebar-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
