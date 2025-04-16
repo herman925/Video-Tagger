@@ -18,7 +18,7 @@ function initLoad() {
           if (typeof window.updateTagSummary === 'function') window.updateTagSummary();
           if (typeof window.updateTimelineMarkers === 'function') window.updateTimelineMarkers(window._timelineTags);
           if (typeof window.initTags === 'function') window.initTags();
-          alert('Session loaded! Please manually reload the video if needed.');
+          alert('Session loaded!');
         } catch (err) {
           alert('Failed to load session: ' + err.message);
         }

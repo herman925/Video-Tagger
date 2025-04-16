@@ -1,3 +1,32 @@
+/* Shortcut Help Button Styling */
+.shortcut-help-btn {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border-radius: 50%; /* Make it circular */
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 6px var(--button-shadow);
+  transition: background 0.2s, transform 0.1s ease-out;
+  border: none; /* Ensure no default border */
+  margin-left: 10px; /* Add horizontal space between this and theme toggle */
+}
+
+.shortcut-help-btn:hover {
+  background: var(--button-hover-bg);
+}
+
+.shortcut-help-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 3px var(--button-active-shadow);
+}
+
+
 /* Shortcut Help Modal Styles */
 #shortcut-help-modal {
   position: fixed;

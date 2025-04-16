@@ -32,22 +32,41 @@ function initTags() {
         video.focus();
       });
       row.appendChild(endCell);
-      // Tag cell (editable)
+      // Tag cell (editable, with chip)
       const tagCell = document.createElement('td');
-      tagCell.textContent = tag.label;
+      const colorIdx = i % 5;
+      const chip = document.createElement('span');
+      chip.className = `tag-chip timeline-interval-color-${colorIdx}`;
+      chip.textContent = tag.label;
+      tagCell.appendChild(chip);
       tagCell.contentEditable = true;
-      tagCell.addEventListener('blur', () => {
+
+      // Helper to save tag edit
+      function saveTagEdit() {
         const idx = window._timelineTags.findIndex(t => t === tag);
         if (idx !== -1) {
-          window._timelineTags[idx].label = tagCell.textContent;
+          window._timelineTags[idx].label = tagCell.textContent.trim() || '9999';
         }
+        // Restore chip after editing
+        tagCell.innerHTML = '';
+        chip.textContent = window._timelineTags[idx] ? window._timelineTags[idx].label : tag.label;
+        tagCell.appendChild(chip);
         window.updateTimelineMarkers(window._timelineTags);
         window.updateTagSummary();
+      }
+      tagCell.addEventListener('focus', () => {
+        tagCell.textContent = tag.label;
+      });
+      tagCell.addEventListener('blur', saveTagEdit);
+      tagCell.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          tagCell.blur();
+        }
       });
       row.appendChild(tagCell);
       // Actions cell
       const actionsCell = document.createElement('td');
-      // Delete btn
       const delBtn = document.createElement('button');
       delBtn.textContent = '🗑️';
       delBtn.className = 'tag-delete-btn';
@@ -75,6 +94,10 @@ function initTags() {
     endTagBtn.disabled = false;
     tagInput.disabled = true;
     startTagBtn.textContent = 'Tagging...';
+    // Show green dot on timeline
+    if (typeof window.showStartDotOnTimeline === 'function') {
+      window.showStartDotOnTimeline(tagInProgress.start);
+    }
   });
 
   // End Tag (records end time and label)
@@ -95,6 +118,10 @@ function initTags() {
     renderTagList();
     window.updateTimelineMarkers(window._timelineTags);
     window.updateTagSummary();
+    // Remove green dot
+    if (typeof window.removeStartDotFromTimeline === 'function') {
+      window.removeStartDotFromTimeline();
+    }
   });
 
   // Utility for time formatting (sync with video.js)

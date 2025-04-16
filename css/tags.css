@@ -6,38 +6,45 @@
   display: flex;
   align-items: center;
   margin-bottom: 16px;
+  gap: 8px; /* Add gap between elements */
 }
 #tag-input-row input[type="text"] {
-  flex: 1;
+  flex: 1 1 200px; /* Allow shrinking, prefer 200px, allow growing */
+  min-width: 180px; /* Prevent getting too small */
+  max-width: 300px; /* Limit maximum width */
   padding: 6px 10px;
   border-radius: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border-color); /* Use CSS Variable */
+  background-color: var(--panel-bg); /* Match panel background */
+  color: var(--text-color); /* Match text color */
   margin-right: 8px;
 }
 #tag-input-row button {
   padding: 6px 16px;
   border-radius: 5px;
-  background: #5b9fff;
-  color: #fff;
+  background: var(--button-bg); /* Use CSS Variable */
+  color: var(--button-text); /* Use CSS Variable */
   border: none;
   cursor: pointer;
   transition: background 0.2s;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 #tag-input-row button:hover {
-  background: #2a7cf7;
+  background: var(--button-hover-bg); /* Use CSS Variable */
 }
 #tag-list-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 24px;
+  background-color: var(--panel-bg); /* Match panel background */
 }
 #tag-list-table th, #tag-list-table td {
   padding: 8px 6px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color); /* Use CSS Variable */
   text-align: left;
 }
 #tag-list-table tr:hover {
-  background: #eaf1ff;
+  background: var(--table-hover-bg); /* Use CSS Variable */
   cursor: pointer;
 }
 .tag-edit-btn, .tag-delete-btn {
@@ -45,10 +52,11 @@
   border: none;
   cursor: pointer;
   margin-left: 4px;
+  color: var(--text-color); /* Use CSS Variable */
 }
 .tag-edit-btn:hover {
-  color: #2a7cf7;
+  color: var(--button-hover-bg); /* Use CSS Variable */
 }
 .tag-delete-btn:hover {
-  color: #e74c3c;
+  color: #e74c3c; /* Keep delete color distinct */
 }

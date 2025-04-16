@@ -43,10 +43,11 @@ function initShortcutHelpPopup() {
       hideModal();
     }
   });
-
-  // Mouse: '?' button in top right
-  const btn = document.getElementById('shortcut-help-btn');
-  if (btn) btn.onclick = showModal;
+  // Mouse: '?' buttons
+  const helpButtons = document.querySelectorAll('.shortcut-help-btn');
+  helpButtons.forEach(btn => {
+    btn.onclick = showModal;
+  });
 }
 
 // Auto-init

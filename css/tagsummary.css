@@ -1,16 +1,24 @@
+/* filepath: c:\Users\Herman\The Education University of Hong Kong\o365grp_KeySteps@JC - General\98 - IT Support\04 - Homemade Apps\Video-Tagger\css\tagsummary.css */
 /* Tag summary table styles */
+#tag-summary-section {
+  background: transparent; /* Override panel background to make it transparent */
+  padding: 0; /* Remove any padding that might be part of the panel class */
+  box-shadow: none; /* Remove any shadow that might be part of the panel class */
+}
+
 #tag-summary-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 18px;
+  background-color: var(--panel-bg); /* Match panel background */
 }
 #tag-summary-table th, #tag-summary-table td {
   padding: 7px 5px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color); /* Use CSS Variable */
   text-align: left;
 }
 #tag-summary-table tr:hover {
-  background: #f7faff;
+  background: var(--table-hover-bg); /* Use CSS Variable */
 }
 #export-row {
   display: flex;

@@ -1,169 +1,289 @@
-/* Modern, clean, card-based UI for Video Tagger */
+:root {
+  /* Light Theme (Default) */
+  --bg-color: #f5f7fa;
+  --text-color: #222;
+  --panel-bg: #fff;
+  --panel-shadow: rgba(60, 60, 60, 0.10);
+  --panel-hover-shadow: rgba(51, 102, 204, 0.13);
+  --sidebar-bg: #f5f6fa;
+  --border-color: #e0e0e0;
+  --input-border-color: #ccc;
+  --button-bg: #5b9fff;
+  --button-text: #fff;
+  --button-hover-bg: #2a7cf7;
+  --button-shadow: rgba(51, 102, 204, 0.07);
+  --button-active-shadow: rgba(51, 102, 204, 0.10);
+  --timeline-bg: #eaf2fb;
+  --timeline-shadow: rgba(51, 102, 204, 0.07);
+  --timeline-interval-border: #fff;
+  --timeline-interval-shadow: rgba(51, 102, 204, 0.10);
+  --timeline-interval-hover-shadow: #3366cc33;
+  --timeline-ruler-text: #666;
+  --timeline-ruler-tick: #aaa;
+  --table-hover-bg: #eaf1ff;
+  --context-menu-bg: #fff;
+  --context-menu-border: #bbb;
+  --context-menu-shadow: rgba(30, 40, 60, 0.13);
+  --context-menu-hover-bg: #eaf2fb;
+  --tag-chip-bg: #5b9fff;
+  --tag-chip-text: #fff;
+  --tag-chip-shadow: rgba(51, 102, 204, 0.10);
+  --plyr-control-bg: rgba(255, 255, 255, 0.9);
+  --plyr-control-color: #333;
+}
+
+body.dark-theme {
+  /* Dark Theme Overrides */
+  --bg-color: #1a1a1a;
+  --text-color: #e0e0e0;
+  --panel-bg: #2c2c2c;
+  --panel-shadow: rgba(0, 0, 0, 0.2);
+  --panel-hover-shadow: rgba(0, 0, 0, 0.3);
+  --sidebar-bg: #252525;
+  --border-color: #444;
+  --input-border-color: #555;
+  --button-bg: #4a8ddc;
+  --button-text: #fff;
+  --button-hover-bg: #6a9fdc;
+  --button-shadow: rgba(0, 0, 0, 0.15);
+  --button-active-shadow: rgba(0, 0, 0, 0.25);
+  --timeline-bg: #3a3a3a;
+  --timeline-shadow: rgba(0, 0, 0, 0.15);
+  --timeline-interval-border: #444;
+  --timeline-interval-shadow: rgba(0, 0, 0, 0.2);
+  --timeline-interval-hover-shadow: #77aaff33;
+  --timeline-ruler-text: #aaa;
+  --timeline-ruler-tick: #777;
+  --table-hover-bg: #3f3f3f;
+  --context-menu-bg: #333;
+  --context-menu-border: #555;
+  --context-menu-shadow: rgba(0, 0, 0, 0.25);
+  --context-menu-hover-bg: #4a4a4a;
+  --tag-chip-bg: #4a8ddc;
+  --tag-chip-text: #fff;
+  --tag-chip-shadow: rgba(0, 0, 0, 0.2);
+  --plyr-control-bg: rgba(40, 40, 40, 0.9);
+  --plyr-control-color: #eee;
+}
+
 body {
-  background: #f5f7fa;
-  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-  color: #222;
-  margin: 0;
-  padding: 0;
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  transition: background 0.3s, color 0.3s;
 }
-#app-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 32px;
-  padding: 32px 16px 32px 16px;
-  max-width: 1400px;
-  margin: auto;
-}
-.panel {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(60,60,60,0.08);
-  padding: 28px 28px 24px 28px;
-  margin-bottom: 24px;
-}
-.section-header {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 18px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #3366cc;
-}
-.section-label {
-  font-size: 1.1rem;
-  font-weight: 500;
-  margin: 18px 0 10px 0;
-  color: #555;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.timeline-panel {
-  background: #eaf2fb;
-  border-radius: 8px;
-  min-height: 32px;
-  margin-bottom: 12px;
-  position: relative;
-}
+
+/* Timeline beautification: single row, overlapping tags */
 #timeline {
-  min-height: 100px;
+  min-height: 36px;
+  height: 36px;
+  background: var(--timeline-bg);
+  border-radius: 10px;
   position: relative;
+  margin: 12px 0 24px 0;
+  box-shadow: 0 2px 8px var(--timeline-shadow);
+  overflow: visible;
 }
 .timeline-interval {
   position: absolute;
+  top: 10px;
   height: 16px;
   border-radius: 6px;
   opacity: 0.7;
   cursor: pointer;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, opacity 0.2s, filter 0.2s;
+  border: 2px solid var(--timeline-interval-border);
+  box-shadow: 0 2px 8px var(--timeline-interval-shadow);
+  z-index: 2;
 }
-.timeline-interval-row-0 { top: 6px; }
-.timeline-interval-row-1 { top: 28px; }
-.timeline-interval-row-2 { top: 50px; }
-.timeline-interval-row-3 { top: 72px; }
-.timeline-interval-row-4 { top: 94px; }
+.timeline-interval:hover {
+  opacity: 1;
+  filter: brightness(1.1) drop-shadow(0 2px 8px var(--timeline-interval-hover-shadow));
+  box-shadow: 0 4px 16px var(--panel-hover-shadow); /* Use panel hover shadow for consistency */
+}
+/* Colors remain hardcoded as they are distinct categories */
 .timeline-interval-color-0 { background: #5b9fff; }
 .timeline-interval-color-1 { background: #ffb347; }
 .timeline-interval-color-2 { background: #7ed957; }
 .timeline-interval-color-3 { background: #e05d5d; }
 .timeline-interval-color-4 { background: #a17fff; }
-#controls {
-  margin: 12px 0 6px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-#tag-input-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-#tag-input {
-  flex: 1 1 120px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  padding: 7px 10px;
+
+/* Context menu for overlapping tags */
+#timeline-context-menu {
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
   font-size: 1rem;
+  background: var(--context-menu-bg);
+  border: 1px solid var(--context-menu-border);
+  color: var(--text-color); /* Ensure text color matches theme */
+  border-radius: 8px;
+  box-shadow: 0 4px 16px var(--context-menu-shadow);
+  z-index: 1000;
+  min-width: 140px;
+  padding: 6px 0;
+  position: absolute;
 }
-#start-tag-btn, #end-tag-btn {
-  border: none;
-  border-radius: 6px;
-  background: #3366cc;
-  color: #fff;
-  padding: 7px 16px;
-  font-size: 1rem;
+#timeline-context-menu div {
+  padding: 8px 18px;
   cursor: pointer;
+  transition: background 0.15s;
+}
+#timeline-context-menu div:hover {
+  background: var(--context-menu-hover-bg);
+}
+
+/* Button and panel polish */
+button, .button-group button {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--button-shadow);
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  font-weight: 500;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+  /* Apply button colors - specific buttons might override */
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none; /* Ensure no default border interferes */
+}
+button:active, .button-group button:active {
+  box-shadow: 0 1px 2px var(--button-active-shadow);
+}
+
+.panel {
+  background: var(--panel-bg); /* Added panel background */
+  box-shadow: 0 4px 24px var(--panel-shadow);
+  transition: box-shadow 0.2s, background 0.3s;
+}
+.panel:hover {
+  box-shadow: 0 8px 32px var(--panel-hover-shadow);
+}
+
+/* Tag chip style in tag list */
+#tag-list-table td:nth-child(3) {
+  padding: 8px 6px;
+}
+.tag-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.98em;
+  font-weight: 500;
+  color: var(--tag-chip-text);
+  margin-right: 2px;
+  background: var(--tag-chip-bg);
+  box-shadow: 0 1px 4px var(--tag-chip-shadow);
+  vertical-align: middle;
   transition: background 0.2s;
 }
-#start-tag-btn:disabled, #end-tag-btn:disabled {
-  background: #b5c6e0;
-  color: #eee;
-  cursor: not-allowed;
+
+/* Plyr Dark Theme Adjustments */
+body.dark-theme .plyr {
+    --plyr-video-control-background: var(--plyr-control-bg);
+    --plyr-video-control-color: var(--plyr-control-color);
+    --plyr-tooltip-background: #444;
+    --plyr-tooltip-color: #eee;
 }
-#tag-list-table, #tag-summary-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-  background: #fafbfc;
-  border-radius: 8px;
-  overflow: hidden;
+
+/* Responsive improvements */
+@media (max-width: 900px) {
+  #timeline { min-height: 32px; height: 32px; }
 }
-#tag-list-table th, #tag-list-table td, #tag-summary-table th, #tag-summary-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #e2e8f0;
-  text-align: left;
-}
-#tag-list-table th, #tag-summary-table th {
-  background: #eaf2fb;
-  color: #3366cc;
-  font-weight: 600;
-}
-#tag-list-table td {
-  background: #fff;
-}
-#tag-list-table tr:last-child td, #tag-summary-table tr:last-child td {
-  border-bottom: none;
-}
-.button-group {
+
+/* Theme Toggle Positioning */
+#theme-toggle-container {
+  position: fixed; /* Position relative to the viewport */
+  top: 20px;
+  right: 25px;
+  z-index: 1000; /* Ensure it stays on top */
   display: flex;
-  gap: 10px;
-  margin-top: 18px;
+  align-items: center;
+  gap: 8px; /* Space between switch and label */
 }
-#export-row button, .button-group button {
-  border: none;
-  border-radius: 6px;
-  background: #3366cc;
-  color: #fff;
-  padding: 8px 20px;
-  font-size: 1rem;
-  font-weight: 500;
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px; /* Adjust size as needed */
+  height: 26px;
+}
+
+.theme-switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(51,102,204,0.07);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
 }
-#export-row button:hover, .button-group button:hover {
-  background: #2351a1;
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
 }
-.icon {
-  font-size: 1.2em;
-  vertical-align: middle;
+
+input:checked + .slider {
+  background-color: var(--button-bg); /* Use theme color */
 }
-#sidebar {
-  min-width: 350px;
-  max-width: 420px;
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--button-bg);
 }
-@media (max-width: 1100px) {
-  #app-container {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 18px;
-  }
-  #sidebar {
-    max-width: 100%;
-    min-width: 0;
-  }
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 26px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Theme Icons (Sun and Moon) */
+.theme-icon {
+  position: absolute;
+  top: 3px;
+  font-size: 0.9em;
+  transition: opacity 0.3s ease;
+}
+
+.theme-icon.sun {
+  left: 6px;
+  opacity: 1;
+}
+
+.theme-icon.moon {
+  right: 7px;
+  opacity: 0;
+}
+
+/* Show/hide icons based on toggle state */
+input:checked + .slider .theme-icon.sun {
+  opacity: 0;
+}
+
+input:checked + .slider .theme-icon.moon {
+  opacity: 1;
+}
+
+/* Keep for backwards compatibility, can be removed later */
+.theme-toggle-label {
+  display: none; /* Hide the text label now that we have icons */
+  font-size: 0.9em;
+  color: var(--text-color); /* Use theme text color */
 }

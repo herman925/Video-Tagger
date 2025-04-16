@@ -1,10 +1,9 @@
 /* Video player and timeline styles */
 #video-player {
   width: 100%;
-  max-width: 700px;
-  background: #111;
+  background: #111; /* Keep dark background for video player itself */
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+  box-shadow: 0 2px 12px var(--panel-shadow); /* Use CSS Variable */
   margin-bottom: 18px;
 }
 #controls {
@@ -18,9 +17,8 @@
 #timeline {
   position: relative;
   width: 100%;
-  max-width: 700px;
   height: 28px;
-  background: #eaeaea;
+  background: var(--timeline-bg); /* Use CSS Variable */
   border-radius: 10px;
   margin: 12px 0 24px 0;
 }
@@ -29,11 +27,44 @@
   top: 2px;
   width: 8px;
   height: 24px;
-  background: #5b9fff;
+  background: var(--button-bg); /* Use CSS Variable */
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s;
 }
 .timeline-marker:hover {
-  background: #2a7cf7;
+  background: var(--button-hover-bg); /* Use CSS Variable */
+}
+.timeline-start-dot {
+  position: absolute;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  background: #27c93f; /* Keep green for start dot */
+  border-radius: 50%;
+  border: 2px solid var(--timeline-interval-border); /* Use CSS Variable */
+  box-shadow: 0 1px 4px rgba(39,201,63,0.18);
+  z-index: 10;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* Timeline Time Markers */
+.timeline-time-marker {
+  position: absolute;
+  bottom: -18px; /* Position below the timeline bar */
+  transform: translateX(-50%); /* Center the text */
+  font-size: 0.75em;
+  color: var(--timeline-ruler-text); /* Use CSS Variable */
+  white-space: nowrap;
+}
+
+.timeline-time-marker::before {
+  content: '';
+  position: absolute;
+  bottom: 18px; /* Align with bottom of marker text */
+  left: 50%;
+  width: 1px;
+  height: 5px; /* Height of the tick mark */
+  background-color: var(--timeline-ruler-tick); /* Use CSS Variable */
 }

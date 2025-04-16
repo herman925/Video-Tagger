@@ -1,103 +1,94 @@
-// App entry point and event wiring
-// Handles initial setup, loading video, wiring up UI events
+// Main application logic, theme switching, initialization
 
-window.addEventListener('DOMContentLoaded', () => {
-  // Video elements
-  const video = document.getElementById('video');
-  const playBtn = document.getElementById('play-btn');
-  const pauseBtn = document.getElementById('pause-btn');
-  const seekBar = document.getElementById('seek-bar');
-  const currentTimeLabel = document.getElementById('current-time');
-  const durationLabel = document.getElementById('duration');
-  
-  // --- Play/Pause Button Logic ---
-  if (playBtn) playBtn.addEventListener('click', () => video.play());
-  if (pauseBtn) pauseBtn.addEventListener('click', () => video.pause());
+document.addEventListener('DOMContentLoaded', () => {
+  // Get references to the new checkboxes
+  const themeCheckboxHero = document.getElementById('theme-checkbox-hero');
+  const themeCheckboxSidebar = document.getElementById('theme-checkbox-sidebar');
+  const body = document.body;
 
-  // --- Time Label Update ---
-  function formatTime(seconds) {
-    if (isNaN(seconds) || seconds == null) return '00:00:00.000';
-    const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-    const s = String(Math.floor(seconds % 60)).padStart(2, '0');
-    const ms = String(Math.floor((seconds % 1) * 1000)).padStart(3, '0');
-    return `${h}:${m}:${s}.${ms}`;
-  }
-  function updateTimeLabels() {
-    currentTimeLabel.textContent = formatTime(video.currentTime);
-    durationLabel.textContent = formatTime(video.duration);
-  }
-  video.addEventListener('timeupdate', () => {
-    if (currentTimeLabel) currentTimeLabel.textContent = formatTime(video.currentTime);
-    if (durationLabel) durationLabel.textContent = formatTime(video.duration);
-  });
-  video.addEventListener('loadedmetadata', () => {
-    if (currentTimeLabel) currentTimeLabel.textContent = formatTime(video.currentTime);
-    if (durationLabel) durationLabel.textContent = formatTime(video.duration);
-  });
-  if (seekBar) seekBar.addEventListener('input', () => {
-    if (video.duration) {
-      video.currentTime = (seekBar.value / 100) * video.duration;
+  // Function to apply theme based on checkbox state
+  function applyTheme(isDark) {
+    if (isDark) {
+      body.classList.add('dark-theme');
+    } else {
+      body.classList.remove('dark-theme');
     }
-  });
+    // Sync both checkboxes
+    if (themeCheckboxHero) themeCheckboxHero.checked = isDark;
+    if (themeCheckboxSidebar) themeCheckboxSidebar.checked = isDark;
+    // Save preference
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }
 
-  // --- Save/Load Logic ---
-  const saveBtn = document.getElementById('save-btn');
-  const loadBtn = document.getElementById('load-btn');
-  saveBtn.addEventListener('click', () => {
-    const tags = window._timelineTags || [];
-    const videoSource = window.currentVideoSource || '';
-    const session = { videoSource, tags };
-    const json = JSON.stringify(session, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'video_tag_session.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-  loadBtn.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,application/json';
-    input.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const data = JSON.parse(evt.target.result);
-          if (!data.tags || !Array.isArray(data.tags)) throw new Error('Invalid session file.');
-          window._timelineTags = data.tags;
-          window.currentVideoSource = data.videoSource || '';
-          if (typeof window.updateTagSummary === 'function') window.updateTagSummary();
-          if (typeof window.updateTimelineMarkers === 'function') window.updateTimelineMarkers(window._timelineTags);
-          if (typeof window.initTags === 'function') window.initTags();
-          alert('Session loaded! Please manually reload the video if needed.');
-        } catch (err) {
-          alert('Failed to load session: ' + err.message);
-        }
-      };
-      reader.readAsText(file);
+  // Load saved theme preference
+  const savedTheme = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  let initialThemeIsDark = false;
+
+  if (savedTheme === 'dark') {
+    initialThemeIsDark = true;
+  } else if (savedTheme === 'light') {
+    initialThemeIsDark = false;
+  } else {
+    // If no saved theme, use system preference
+    initialThemeIsDark = prefersDark;
+  }
+
+  // Apply the initial theme
+  applyTheme(initialThemeIsDark);
+
+
+  // Add event listeners to both checkboxes
+  if (themeCheckboxHero) {
+    themeCheckboxHero.addEventListener('change', (e) => {
+      applyTheme(e.target.checked);
     });
-    input.click();
-  });
+  }
+  if (themeCheckboxSidebar) {
+    themeCheckboxSidebar.addEventListener('change', (e) => {
+      applyTheme(e.target.checked);
+    });
+  }
 
-  // --- Keyboard Shortcuts ---
-  document.addEventListener('keydown', (e) => {
-    if (document.activeElement.tagName === 'INPUT' || document.activeElement.isContentEditable) return;
-    if (e.key === ' ') {
-      e.preventDefault();
-      if (video.paused) video.play();
-      else video.pause();
-    }
-  });
 
-  // (Re-)initialize other modules as needed
+  // Initialize other components if they exist
   if (typeof initVideo === 'function') initVideo();
   if (typeof initTags === 'function') initTags();
+  if (typeof initTagSummary === 'function') initTagSummary();
+  if (typeof initExport === 'function') initExport();
+  if (typeof initSaveLoad === 'function') initSaveLoad();
   if (typeof initShortcuts === 'function') initShortcuts();
+  if (typeof initShortcutHelp === 'function') initShortcutHelp();
+
+  // Initial setup for button states etc.
+  const startTagBtn = document.getElementById('start-tag-btn');
+  const endTagBtn = document.getElementById('end-tag-btn');
+  const tagInput = document.getElementById('tag-input');
+
+  if (startTagBtn) startTagBtn.disabled = true; // Disabled until video loaded
+  if (endTagBtn) endTagBtn.disabled = true;
+  if (tagInput) tagInput.disabled = true;
+
+  // Add listener to enable buttons when video is ready
+  const video = document.getElementById('video');
+  if (video) {
+    video.addEventListener('loadedmetadata', () => {
+      if (startTagBtn) startTagBtn.disabled = false;
+      if (tagInput) tagInput.disabled = false;
+      // End button remains disabled until start is clicked
+    });
+     video.addEventListener('emptied', () => {
+        // Reset buttons if video source is removed/changed
+        if (startTagBtn) startTagBtn.disabled = true;
+        if (endTagBtn) endTagBtn.disabled = true;
+        if (tagInput) tagInput.disabled = true;
+        if (startTagBtn) startTagBtn.textContent = 'Mark Start'; // Reset text
+        // Clear tags and timeline? Might be needed depending on desired UX
+        // window._timelineTags = [];
+        // if(window.updateTimelineMarkers) window.updateTimelineMarkers([]);
+        // if(window.updateTagSummary) window.updateTagSummary();
+        // renderTagList(); // Assuming renderTagList is accessible or part of initTags
+    });
+  }
+
 });
