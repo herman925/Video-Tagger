@@ -106,6 +106,7 @@ function initVideo() {
   function updateTimelineMarkers(tagList) {
   console.log('[timeline] updateTimelineMarkers called', tagList);
     timeline.innerHTML = '';
+  timeline.style.display = 'block'; // DEBUG: always show timeline
     if (!video.duration || !Array.isArray(tagList)) return;
 
     // Sort tags by start time
