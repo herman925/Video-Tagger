@@ -1,13 +1,26 @@
 // Export logic for Video Tagger (interval tags, with video source)
+
+// Store the handler function to allow removal
+let exportClickHandler = null;
+
 function initExport() {
+  console.log('initExport called'); // Log initExport call
   const exportBtn = document.getElementById('export-btn');
-  exportBtn.addEventListener('click', () => {
+  if (!exportBtn) {
+    console.error('Export button not found!');
+    return; // Exit if button not found
+  }
+
+  // Define the handler function
+  exportClickHandler = () => {
+    console.log('Export button clicked!'); // Log click event
     const tags = window._timelineTags || [];
     const videoSource = window.currentVideoSource || '';
     if (!tags.length) {
       alert('No tags to export!');
       return;
     }
+    console.log('Export process started.'); // Log export start
     // CSV header
     let csv = 'Video Source,Start (s),End (s),Start (HH:MM:SS.mmm),End (HH:MM:SS.mmm),Tag\n';
     tags
@@ -27,7 +40,16 @@ function initExport() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  });
+    console.log('Export process finished.'); // Log export end
+  };
+
+  // Remove any existing listener before adding the new one
+  if (exportClickHandler) {
+      console.log('Removing existing export click listener.');
+      exportBtn.removeEventListener('click', exportClickHandler);
+  }
+  console.log('Adding new export click listener.');
+  exportBtn.addEventListener('click', exportClickHandler);
 
   // Utility for time formatting (should match tag.js/video.js)
   function formatTime(seconds, showMs = false) {
@@ -43,4 +65,8 @@ function initExport() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initExport);
+/* Remove the DOMContentLoaded listener as main.js handles initialization */
+// document.addEventListener('DOMContentLoaded', () => {
+//     console.log('DOMContentLoaded - calling initExport');
+//     initExport();
+// });

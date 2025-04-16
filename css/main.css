@@ -40,10 +40,9 @@ body {
 }
 
 /* Specific label style for hero if needed (e.g., different color) */
-#theme-toggle-hero .theme-toggle-label {
+/* #theme-toggle-hero .theme-toggle-label { */
   /* color: #555; */ /* Example: slightly different color for hero */
-}
-
+/* } */
 
 #app-container {
   display: flex;
@@ -58,7 +57,7 @@ body {
   width: 100%; /* Ensure it takes full width up to max-width */
 }
 #video-section {
-  flex: 3; /* Give video more space */
+  flex: 2; /* Give video less space relative to sidebar */
   background: var(--panel-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
@@ -123,8 +122,8 @@ body {
 }
 
 #sidebar {
-  flex: 1;
-  min-width: 300px; /* Minimum width for sidebar */
+  flex: 1.5; /* Give sidebar more relative space */
+  min-width: 350px; /* Slightly increase min-width */
   max-width: 500px; /* Maximum width for sidebar */
   background: var(--sidebar-bg); /* Use CSS Variable */
   display: flex;
