@@ -1,0 +1,39 @@
+/* Video player and timeline styles */
+#video-player {
+  width: 100%;
+  max-width: 700px;
+  background: #111;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+  margin-bottom: 18px;
+}
+#controls {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+#controls button, #controls input[type="range"] {
+  margin-right: 10px;
+}
+#timeline {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 28px;
+  background: #eaeaea;
+  border-radius: 10px;
+  margin: 12px 0 24px 0;
+}
+.timeline-marker {
+  position: absolute;
+  top: 2px;
+  width: 8px;
+  height: 24px;
+  background: #5b9fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.timeline-marker:hover {
+  background: #2a7cf7;
+}

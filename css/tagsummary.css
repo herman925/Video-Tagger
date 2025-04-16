@@ -1,0 +1,31 @@
+/* Tag summary table styles */
+#tag-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+}
+#tag-summary-table th, #tag-summary-table td {
+  padding: 7px 5px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+#tag-summary-table tr:hover {
+  background: #f7faff;
+}
+#export-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+#export-row button {
+  padding: 7px 16px;
+  border-radius: 5px;
+  background: #5b9fff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#export-row button:hover {
+  background: #2a7cf7;
+}

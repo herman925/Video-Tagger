@@ -1,0 +1,54 @@
+/* Tag sidebar, tag list styles */
+#tag-section {
+  margin-bottom: 32px;
+}
+#tag-input-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+#tag-input-row input[type="text"] {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-right: 8px;
+}
+#tag-input-row button {
+  padding: 6px 16px;
+  border-radius: 5px;
+  background: #5b9fff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#tag-input-row button:hover {
+  background: #2a7cf7;
+}
+#tag-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+#tag-list-table th, #tag-list-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+#tag-list-table tr:hover {
+  background: #eaf1ff;
+  cursor: pointer;
+}
+.tag-edit-btn, .tag-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.tag-edit-btn:hover {
+  color: #2a7cf7;
+}
+.tag-delete-btn:hover {
+  color: #e74c3c;
+}
