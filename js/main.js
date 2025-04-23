@@ -1,5 +1,17 @@
 // Main application logic, theme switching, initialization
 
+let hasUnsavedChanges = false;
+window.markDirty = () => { hasUnsavedChanges = true; };
+window.markSaved = () => { hasUnsavedChanges = false; };
+// Warn user if they attempt to close with unsaved changes
+window.addEventListener('beforeunload', e => {
+  if (!hasUnsavedChanges) return;
+  const msg = 'You have unsaved changes. Press Cancel to return and click Save to preserve your tags, or press Leave to discard changes and close.';
+  e.preventDefault();
+  e.returnValue = msg;
+  return msg;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   // Get references to the new checkboxes
   const themeCheckboxHero = document.getElementById('theme-checkbox-hero');
