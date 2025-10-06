@@ -105,13 +105,13 @@ button:hover,
   display: flex;
   flex-direction: row;
   height: 90vh; /* Adjust height to leave some margin */
-  max-width: 1080px; /* Limit max width for ultrawide */
+  max-width: 1280px; /* Widen the container */
   margin: auto; /* Center container both horizontally and vertically */
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 100%; /* Ensure it takes full width up to max-width */
+  width: 95%; /* Use more of the viewport */
 }
 #video-section {
   flex-basis: 60%; /* Use 60% of the container width */
@@ -520,4 +520,89 @@ button:hover,
   font-size: 0.9em;
   color: var(--text-color);
   opacity: 0.8;
+}
+
+/* Remarks Modal Styles */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--panel-bg);
+  color: var(--text-color);
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  max-width: 480px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 2001;
+}
+
+.modal-content h2 {
+  margin: 0;
+  font-size: 1.4em;
+}
+
+.modal-content textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border-color);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  font-size: 1em;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modal-actions button {
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#remarks-save-btn {
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+#remarks-save-btn:hover {
+  background: var(--button-hover-bg);
+}
+
+#remarks-cancel-btn {
+  background: var(--button-secondary-bg);
+  color: var(--text-color);
+}
+
+#remarks-cancel-btn:hover {
+  background: var(--button-secondary-hover-bg);
 }

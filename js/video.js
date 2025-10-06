@@ -156,8 +156,9 @@ function createYouTubePlayer(videoId) {
     width: '100%',
     videoId: videoId,
     playerVars: {
-      'playsinline': 1, // Important for mobile playback
-      'origin': (window.location && window.location.origin) ? window.location.origin : undefined,
+      'playsinline': 1,
+      'origin': window.location.origin,
+      'enablejsapi': 1,
       'host': 'https://www.youtube.com'
     },
     events: {
