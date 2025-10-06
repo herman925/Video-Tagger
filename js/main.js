@@ -1,55 +1,48 @@
 // Main application logic, theme switching, initialization
 
+let hasUnsavedChanges = false;
+window.markDirty = () => { hasUnsavedChanges = true; };
+window.markSaved = () => { hasUnsavedChanges = false; };
+// Warn user if they attempt to close with unsaved changes
+window.addEventListener('beforeunload', e => {
+  if (!hasUnsavedChanges) return;
+  const msg = 'You have unsaved changes. Press Cancel to return and click Save to preserve your tags, or press Leave to discard changes and close.';
+  e.preventDefault();
+  e.returnValue = msg;
+  return msg;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Get references to the new checkboxes
-  const themeCheckboxHero = document.getElementById('theme-checkbox-hero');
-  const themeCheckboxSidebar = document.getElementById('theme-checkbox-sidebar');
-  const body = document.body;
-
-  // Function to apply theme based on checkbox state
-  function applyTheme(isDark) {
-    if (isDark) {
-      body.classList.add('dark-theme');
-    } else {
-      body.classList.remove('dark-theme');
-    }
-    // Sync both checkboxes
-    if (themeCheckboxHero) themeCheckboxHero.checked = isDark;
-    if (themeCheckboxSidebar) themeCheckboxSidebar.checked = isDark;
-    // Save preference
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  // Theme toggle logic using data-theme attribute
+  const storageKey = 'theme-preference';
+  function getColorPreference() {
+    return localStorage.getItem(storageKey) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   }
-
-  // Load saved theme preference
-  const savedTheme = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  let initialThemeIsDark = false;
-
-  if (savedTheme === 'dark') {
-    initialThemeIsDark = true;
-  } else if (savedTheme === 'light') {
-    initialThemeIsDark = false;
-  } else {
-    // If no saved theme, use system preference
-    initialThemeIsDark = prefersDark;
+  const theme = { value: getColorPreference() };
+  function reflectPreference() {
+    document.documentElement.setAttribute('data-theme', theme.value);
+    document.body.classList.toggle('dark-theme', theme.value === 'dark');
+    document.querySelector('#theme-toggle')?.setAttribute('aria-label', theme.value);
   }
-
-  // Apply the initial theme
-  applyTheme(initialThemeIsDark);
-
-
-  // Add event listeners to both checkboxes
-  if (themeCheckboxHero) {
-    themeCheckboxHero.addEventListener('change', (e) => {
-      applyTheme(e.target.checked);
-    });
+  function setPreference() {
+    localStorage.setItem(storageKey, theme.value);
+    reflectPreference();
   }
-  if (themeCheckboxSidebar) {
-    themeCheckboxSidebar.addEventListener('change', (e) => {
-      applyTheme(e.target.checked);
-    });
+  function onClick() {
+    theme.value = theme.value === 'light' ? 'dark' : 'light';
+    setPreference();
   }
-
+  // set early so no page flash
+  reflectPreference();
+  window.onload = () => {
+    reflectPreference();
+    document.querySelector('#theme-toggle')?.addEventListener('click', onClick);
+  };
+  // sync with system changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ({matches:isDark}) => {
+    theme.value = isDark ? 'dark' : 'light';
+    setPreference();
+  });
 
   // Initialize other components if they exist
   if (typeof initVideo === 'function') initVideo();

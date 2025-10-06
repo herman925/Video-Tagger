@@ -18,6 +18,7 @@ function initSave() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    window.markSaved();
   });
 }
 document.addEventListener('DOMContentLoaded', initSave);

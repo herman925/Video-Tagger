@@ -73,6 +73,7 @@ function initTags() {
         tagCell.appendChild(chip);
         window.updateTimelineMarkers(window._timelineTags);
         window.updateTagSummary();
+        window.markDirty();
       }
       tagCell.addEventListener('focus', () => {
         // Temporarily remove chip and show raw text for editing
@@ -101,6 +102,7 @@ function initTags() {
         renderTagList();
         window.updateTimelineMarkers(window._timelineTags);
         window.updateTagSummary();
+        window.markDirty();
       });
       actionsCell.appendChild(delBtn);
       row.appendChild(actionsCell);
@@ -164,6 +166,7 @@ function initTags() {
     renderTagList();
     window.updateTimelineMarkers(window._timelineTags);
     window.updateTagSummary();
+    window.markDirty();
     // Remove green dot
     if (typeof window.removeStartDotFromTimeline === 'function') {
       window.removeStartDotFromTimeline();
