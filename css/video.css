@@ -1,4 +1,9 @@
 /* Video player and timeline styles */
+#timeline-container {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
 #video-player {
   width: 100%;
   background: #111; /* Keep dark background for video player itself */
@@ -6,19 +11,23 @@
   box-shadow: 0 2px 12px var(--panel-shadow); /* Use CSS Variable */
   margin-bottom: 18px;
 }
+
 #controls {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
 }
-#controls button, #controls input[type="range"] {
+
+#controls button,
+#controls input[type="range"] {
   margin-right: 10px;
 }
+
 #timeline {
   position: relative;
   width: 100%;
   height: 28px;
-  background: var(--timeline-bg); /* Use CSS Variable */
+  background: var(--timeline-bg);
   border-radius: 10px;
   margin: 12px 0 24px 0;
 }

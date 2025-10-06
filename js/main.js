@@ -13,6 +13,11 @@ window.addEventListener('beforeunload', e => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  window.mediaMode = window.mediaMode || 'audio';
+  window.currentVID = window.currentVID || '';
+  if (typeof window.applyMediaMode === 'function') {
+    window.applyMediaMode();
+  }
   // Theme toggle logic using data-theme attribute
   const storageKey = 'theme-preference';
   function getColorPreference() {
@@ -57,10 +62,71 @@ document.addEventListener('DOMContentLoaded', () => {
   const startTagBtn = document.getElementById('start-tag-btn');
   const endTagBtn = document.getElementById('end-tag-btn');
   const tagInput = document.getElementById('tag-input');
+  const remarksInput = document.getElementById('tag-remarks-input');
+  const languageCheckboxes = Array.from(document.querySelectorAll('.tag-language-checkbox'));
+  const vidInput = document.getElementById('vid-input');
+  const goHomeBtn = document.querySelector('[data-home-trigger]');
 
   if (startTagBtn) startTagBtn.disabled = true; // Disabled until video loaded
   if (endTagBtn) endTagBtn.disabled = true;
   if (tagInput) tagInput.disabled = true;
+  if (remarksInput) remarksInput.disabled = true;
+  languageCheckboxes.forEach(cb => { cb.disabled = true; });
+
+  if (vidInput) {
+    window.currentVID = vidInput.value.trim();
+    vidInput.addEventListener('input', () => {
+      window.currentVID = vidInput.value.trim();
+      window.markDirty();
+    });
+  }
+
+  languageCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      window.markDirty();
+    });
+  });
+
+  if (remarksInput) {
+    remarksInput.addEventListener('input', window.markDirty);
+  }
+
+  initAdminControls();
+
+  if (goHomeBtn) {
+    goHomeBtn.addEventListener('click', () => {
+      const videoLoader = document.getElementById('video-loader') || document.getElementById('video-hero');
+      const videoPlayer = document.getElementById('video-player');
+      const controlsRow = document.getElementById('controls-tag-row');
+      const timelineLabel = document.querySelector('.timeline-label');
+      const timeline = document.getElementById('timeline');
+      const sidebar = document.getElementById('sidebar');
+
+      if (videoLoader) videoLoader.style.display = 'flex';
+      if (videoPlayer) videoPlayer.style.display = 'none';
+      if (controlsRow) controlsRow.style.display = 'none';
+      if (timelineLabel) timelineLabel.style.display = 'none';
+      if (timeline) timeline.style.display = 'none';
+      if (sidebar) sidebar.style.display = 'none';
+
+      if (window.plyrInstance) {
+        window.plyrInstance.pause();
+      }
+      const videoEl = document.getElementById('video');
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.currentTime = 0;
+      }
+      if (window.ytPlayer && typeof window.ytPlayer.stopVideo === 'function') {
+        window.ytPlayer.stopVideo();
+      }
+      window.currentVideoSource = '';
+      window.mediaMode = 'audio';
+      if (typeof window.applyMediaMode === 'function') {
+        window.applyMediaMode();
+      }
+    });
+  }
 
   // Add listener to enable buttons when video is ready
   const video = document.getElementById('video');
@@ -68,6 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
     video.addEventListener('loadedmetadata', () => {
       if (startTagBtn) startTagBtn.disabled = false;
       if (tagInput) tagInput.disabled = false;
+      if (remarksInput) remarksInput.disabled = false;
+      languageCheckboxes.forEach(cb => { cb.disabled = false; });
       // End button remains disabled until start is clicked
     });
      video.addEventListener('emptied', () => {
@@ -75,6 +143,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (startTagBtn) startTagBtn.disabled = true;
         if (endTagBtn) endTagBtn.disabled = true;
         if (tagInput) tagInput.disabled = true;
+        if (remarksInput) remarksInput.disabled = true;
+        languageCheckboxes.forEach(cb => {
+          cb.checked = false;
+          cb.disabled = true;
+        });
         if (startTagBtn) startTagBtn.textContent = 'Mark Start'; // Reset text
         // Clear tags and timeline? Might be needed depending on desired UX
         // window._timelineTags = [];
@@ -84,4 +157,84 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function initAdminControls() {
+    const adminBtn = document.getElementById('admin-btn');
+    const modal = document.getElementById('admin-modal');
+    if (!adminBtn || !modal) return;
+
+    const passwordSection = document.getElementById('admin-password-section');
+    const passwordInput = document.getElementById('admin-password-input');
+    const authBtn = document.getElementById('admin-auth-btn');
+    const errorEl = document.getElementById('admin-error');
+    const toggleSection = document.getElementById('admin-toggle-section');
+    const mediaToggle = document.getElementById('media-mode-toggle');
+    const closeButtons = modal.querySelectorAll('[data-admin-close]');
+
+    let isUnlocked = false;
+
+    function closeModal() {
+      modal.hidden = true;
+      if (!isUnlocked && passwordInput) passwordInput.value = '';
+      if (errorEl) errorEl.textContent = '';
+    }
+
+    function openModal() {
+      modal.hidden = false;
+      if (!isUnlocked) {
+        toggleSection.hidden = true;
+        passwordSection.hidden = false;
+        if (passwordInput) {
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+        mediaToggle.checked = window.mediaMode === 'video';
+        mediaToggle.disabled = true;
+      } else {
+        toggleSection.hidden = false;
+        passwordSection.hidden = true;
+        mediaToggle.checked = window.mediaMode === 'video';
+        mediaToggle.focus();
+        mediaToggle.disabled = false;
+      }
+    }
+
+    adminBtn.addEventListener('click', openModal);
+    closeButtons.forEach(btn => btn.addEventListener('click', closeModal));
+
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+
+    authBtn.addEventListener('click', () => {
+      if (!passwordInput) return;
+      if (passwordInput.value === 'ks2.0') {
+        isUnlocked = true;
+        passwordSection.hidden = true;
+        toggleSection.hidden = false;
+        errorEl.textContent = '';
+        mediaToggle.checked = window.mediaMode === 'video';
+        mediaToggle.focus();
+        mediaToggle.disabled = false;
+      } else {
+        errorEl.textContent = 'Incorrect password.';
+        passwordInput.focus();
+        passwordInput.select();
+      }
+    });
+
+    mediaToggle.addEventListener('change', () => {
+      if (!isUnlocked) {
+        errorEl.textContent = 'Enter the admin password first.';
+        mediaToggle.checked = window.mediaMode === 'video';
+        return;
+      }
+      window.mediaMode = mediaToggle.checked ? 'video' : 'audio';
+      if (typeof window.applyMediaMode === 'function') {
+        window.applyMediaMode();
+      }
+    });
+  }
 });

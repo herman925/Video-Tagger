@@ -1,7 +1,7 @@
 # Video Tagger Web App - Requirements & Workflow
 
 ## 1. Overview
-A browser-based interval tagging tool for timestamp coding, tag management, and summary reporting. Supports local files and YouTube playback with optional dark/light themes. Built with HTML, CSS, JavaScript, Plyr (HTML5 player), and the YouTube IFrame API (when applicable).
+A browser-based interval tagging tool for timestamp coding, tag management, and summary reporting. Supports local files and YouTube playback with optional dark/light themes. When no video stream is available, the player defaults to audio-only playback with a "No Video" placeholder. Built with HTML, CSS, JavaScript, Plyr (HTML5 player), and the YouTube IFrame API (when applicable).
 
 ---
 
@@ -13,7 +13,7 @@ A browser-based interval tagging tool for timestamp coding, tag management, and 
 +---------------------------------------------------------------+
 |  Hero Screen (initial)                                         |
 |  +---------------------------+--------------------------------+|
-|  |  Video Tagger                                  [☀️/🌙] [?] |
+|  |  Video Tagger                      [☀️/🌙] [?] [Admin] |
 |  |  [Load Local Video]  or  [YouTube URL ][Open]               |
 |  |  "Please load a local video file or enter a YouTube link." |
 |  +------------------------------------------------------------+|
@@ -21,17 +21,18 @@ A browser-based interval tagging tool for timestamp coding, tag management, and 
 |  Main Workspace (after video loads)                           |
 +---------------------------------------------------------------+
 |  +---------------------------+  +---------------------------+ |
-|  |        Video Player       |  |        Sidebar            | |
-|  |   (Plyr or YouTube embed) |  | +-----------------------+ | |
+|  |        Media Player       |  |        Sidebar            | |
+|  |   (Plyr video / audio-only|  | +-----------------------+ | |
+|  |    with "No Video" art)   |  | | Tag List              | | |
 |  |   Timeline ruler w/ dots  |  | | Tag List              | | |
-|  |   Timeline intervals      |  | | Start | End | Tag | 🗑 | | |
+|  |   Timeline intervals      |  | | Start | End | Lang | Tag | Remarks | 🗑 | |
 |  +---------------------------+  | +-----------------------+ | |
 |  | Metadata Panel            |  | | Tag Summary (freq)    | | |
 |  | VID* [___________]        |  | +-----------------------+ | |
-|  | Language (optional) [▼]   |  | | Export | Save | Load  | | |
 |  |                           |  | +-----------------------+ | |
 |  | ⏱ Jump to Time [HH:MM:SS] |  |                               |
 |  | 🏷 Tag Label [_________]   |  |                               |
+|  | 🌐 Language [☐C] [☐E] [☐M]|  |                               |
 |  | 📝 Tag Remarks (optional) |  |                               |
 |  |     [______________]      |  |                               |
 |  | [Mark Start]  [Mark End]  |  |                               |
@@ -64,12 +65,13 @@ A browser-based interval tagging tool for timestamp coding, tag management, and 
   - `Mark End` finalizes the interval, storing start, end, and label (defaults to `9999` when left blank).
   - Buttons are gated until a video is loaded (start) and start is captured (end).
 - **Tag List**
-  - Columns: Start, End, Tag label, Remarks, Actions.
+  - Columns: Start, End, Language, Tag label, Remarks, Actions.
   - Clicking start/end timestamps seeks the player (local Plyr or YouTube) with millisecond formatting `HH:MM:SS.mmm`.
-  - Labels and per-tag remarks are inline editable; edits update chips, timeline intervals, summary, and export data instantly.
+  - Languages, labels, and per-tag remarks are inline editable; edits update chips, timeline intervals, summary, and export data instantly.
   - Delete button removes a tag and immediately refreshes markers and summary.
 - **Tag entry form**
   - Tag label input captures the descriptive name for each interval (defaults to `9999` when blank).
+  - Language multi-select (Cantonese, English, Mandarin) captures one or more languages per tag; stored in colon-separated format (e.g., `Cantonese:English`).
   - Remarks input captures optional per-interval notes; stored alongside each tag and shown in the list/export.
 - **Timeline**
   - Displays a ruler with adaptive tick marks and colored interval bars (minimum visual width enforced).
@@ -85,20 +87,25 @@ A browser-based interval tagging tool for timestamp coding, tag management, and 
   - Save stores session JSON (`videoSource`, `tags`); load restores both tags and timeline markers.
 - **Metadata fields**
   - VID (video identifier) is required prior to export/save; UI validates presence and repeats the value for every exported row.
-  - Language is an optional dropdown covering Hong Kong core languages plus key South Asian demographics (Cantonese, English, Putonghua/Mandarin, Hindi, Urdu, Nepali, Punjabi, Tagalog, Bahasa Indonesia, Tamil, Bengali). A default "Select language" option keeps exports blank if untouched.
+  - Language selection lives at the tag level via multi-select toggles (Cantonese, English, Mandarin) and exports as colon-separated values in the corresponding row; no session-level default.
   - Remarks are optional per-tag notes entered alongside each interval and exported on the corresponding tag row.
+- **Admin override**
+  - `Admin` button opens a modal requesting password `ks2.0`; incorrect entries keep the modal in password state.
+  - Successful authentication reveals a toggle allowing the default media mode to switch between audio-only (`No Video`) and full video playback.
+  - Toggle applies immediately for the current session; reverting to audio-only hides the video surface while preserving playback controls.
 
 ---
 
 ## 5. User Workflow Example
-1. Load video.
-2. Enter the required VID for the session; optionally pick a Language from the dropdown (defaults to blank).
-3. Watch/navigate with controls or shortcuts, pausing as needed.
-4. Enter optional tag label text (default becomes `9999`) and any per-interval remark, then press `Mark Start` or `I` to begin an interval.
-5. Resume playback and press `Mark End` or `O` to close the interval; list, timeline, summary, and remark column update immediately.
-6. Click timeline intervals or tag rows to revisit segments; use jump input for direct positioning.
-7. Edit labels or remarks inline, delete mistakes, export CSV, or save/load JSON sessions as needed.
-8. Confirm VID is present before exporting (required); language selection and per-tag remarks remain optional.
+1. Load video or continue with audio-only playback (default shows "No Video" artwork until a stream is supplied).
+2. If video playback is needed, click `Admin`, enter password `ks2.0`, and flip the media mode toggle to enable the video surface (optional).
+3. Enter the required VID for the session.
+4. Watch/listen and navigate with controls or shortcuts, pausing as needed.
+5. For each interval, choose applicable language(s) (Cantonese, English, Mandarin), enter optional tag label text (default `9999`), and any per-interval remark, then press `Mark Start` or `I` to begin capturing.
+6. Resume playback and press `Mark End` or `O` to close the interval; list, timeline, summary, language, and remark columns update immediately.
+7. Click timeline intervals or tag rows to revisit segments; use jump input for direct positioning.
+8. Edit languages, labels, or remarks inline, delete mistakes, export CSV, or save/load JSON sessions as needed.
+9. Confirm VID is present before exporting (required); per-tag language selections and remarks remain optional but stored per row.
 ---
 
 ## 6. Accessibility & Usability
@@ -109,14 +116,14 @@ A browser-based interval tagging tool for timestamp coding, tag management, and 
 ---
 
 ## 7. Technical Notes
-- Local playback uses the HTML5 `<video>` element wrapped with Plyr for modern controls.
+- Local playback uses the HTML5 `<video>` element wrapped with Plyr; when only audio is supplied (or no video track exists), Plyr presents an audio player with a "No Video" placeholder panel unless the admin toggle forces video mode.
 - YouTube playback uses the YouTube IFrame API and shares the same tagging/timeline flows.
 - `window.showApp()` transitions UI sections once a video source is ready.
 - `_timelineTags` stores interval data shared across modules (`tag.js`, `video.js`, `tagsummary.js`).
 - All time navigation and tagging is millisecond-accurate across local and YouTube players.
 - Modern Chromium-based browsers are primary targets; fallback to native video methods when Plyr is unavailable.
-- Export CSV columns (ordered): `Video Source`, `VID`, `Language`, `Start (s)`, `End (s)`, `Start (HH:MM:SS.mmm)`, `End (HH:MM:SS.mmm)`, `Tag`, `Remarks`. Language cells remain blank if no selection; VID must be populated or export is blocked.
-- Saved JSON structure to include new metadata: `{ videoSource, vid, language, tags: [{ start, end, label, remarks }] }`, with `language` optional/null and `remarks` optional per tag.
+- Export CSV columns (ordered): `Video Source`, `VID`, `Start (s)`, `End (s)`, `Start (HH:MM:SS.mmm)`, `End (HH:MM:SS.mmm)`, `Tag`, `Language`, `Remarks`. Language cells contain colon-separated selections (e.g., `Cantonese:Mandarin`) or remain blank if none; VID must be populated or export is blocked.
+- Saved JSON structure to include new metadata: `{ videoSource, vid, tags: [{ start, end, label, languages, remarks }] }`, where `languages` is an array of the selected values (Cantonese, English, Mandarin) and `remarks` is optional per tag.
 
 ---
 

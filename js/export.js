@@ -16,18 +16,27 @@ function initExport() {
     console.log('Export button clicked!'); // Log click event
     const tags = window._timelineTags || [];
     const videoSource = window.currentVideoSource || '';
+    const vid = (window.currentVID || '').trim();
     if (!tags.length) {
       alert('No tags to export!');
       return;
     }
+    if (!vid) {
+      alert('VID is required before exporting.');
+      return;
+    }
     console.log('Export process started.'); // Log export start
     // CSV header
-    let csv = 'Video Source,Start (s),End (s),Start (HH:MM:SS.mmm),End (HH:MM:SS.mmm),Tag\n';
+    let csv = 'Video Source,VID,Start (s),End (s),Start (HH:MM:SS.mmm),End (HH:MM:SS.mmm),Tag,Language,Remarks\n';
     tags
       .slice()
       .sort((a, b) => a.start - b.start)
       .forEach(tag => {
-        csv += `"${videoSource.replace(/"/g, '""')}",${tag.start.toFixed(3)},${tag.end.toFixed(3)},${formatTime(tag.start, true)},${formatTime(tag.end, true)},"${tag.label.replace(/"/g, '""')}"\n`;
+        const label = (tag.label || '9999').replace(/"/g, '""');
+        const languages = Array.isArray(tag.languages) ? tag.languages.join(':') : '';
+        const languageCell = languages.replace(/"/g, '""');
+        const remarks = (tag.remarks || '').replace(/"/g, '""');
+        csv += `"${videoSource.replace(/"/g, '""')}","${vid.replace(/"/g, '""')}",${(tag.start || 0).toFixed(3)},${(tag.end || 0).toFixed(3)},${formatTime(tag.start, true)},${formatTime(tag.end, true)},"${label}","${languageCell}","${remarks}"\n`;
       });
     // Add UTF-8 BOM for Excel/Unicode compatibility
     const BOM = '\uFEFF';

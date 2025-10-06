@@ -8,6 +8,16 @@ body {
   min-height: 100vh; /* Ensure body takes full height */
 }
 
+button {
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Theme Toggle Switch Styles */
 /* Styles for the switch itself (.theme-switch, .slider) remain the same */
 
@@ -20,10 +30,57 @@ body {
   z-index: 1001; /* Ensure it's above other elements */
 }
 
+.admin-btn {
+  margin-left: 12px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  cursor: pointer;
+  font-size: 0.95em;
+  box-shadow: 0 2px 8px var(--button-shadow);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.admin-btn:hover,
+button:hover,
+.go-home-btn:hover,
+#audio-toggle-btn:hover {
+  cursor: pointer;
+}
+
+.admin-btn:hover {
+  background: var(--button-hover-bg);
+}
+
+.admin-btn:focus-visible {
+  outline: 2px solid var(--button-hover-bg);
+  outline-offset: 2px;
+}
+
 /* Container for the switch inside the sidebar */
 #theme-toggle-sidebar {
   top: 15px; /* Adjust as needed */
   right: 24px; /* Adjust as needed */
+  gap: 12px;
+}
+
+.go-home-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--button-bg);
+  background: transparent;
+  color: var(--button-bg);
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+
+.go-home-btn:hover,
+.go-home-btn:focus-visible {
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 /* Container for the switch inside the hero section */
@@ -72,11 +129,11 @@ body {
 /* New row for Jump Time and Add Tag controls */
 #controls-tag-row {
   display: flex;
-  justify-content: space-between; /* Puts jump on left, tag on right */
+  justify-content: space-between; /* Puts sections across row */
   align-items: flex-start; /* Align items to the top */
   width: 95%; /* Occupy full width of video-section */
   margin-bottom: 20px; /* Space below the row */
-  gap: 20px; /* Space between jump and tag sections */
+  gap: 20px; /* Space between sections */
 }
 
 /* Container for Jump controls + title */
@@ -85,6 +142,42 @@ body {
   flex-direction: column;
   align-items: flex-start;
   flex-shrink: 0; /* Prevent container from shrinking */
+}
+
+#metadata-section {
+  min-width: 180px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metadata-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.95em;
+}
+
+.metadata-field span {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.metadata-field input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border-color);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  font-size: 1em;
+}
+
+#interaction-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
 }
 
 /* Remove margin from header inside this container */
@@ -123,6 +216,151 @@ body {
 
 #controls-tag-row #tag-section .section-header {
   margin-top: 0; /* Adjust header margin if needed */
+}
+
+#language-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.language-label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.language-pill-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.language-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--input-border-color);
+  background: var(--panel-bg);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.language-pill:hover {
+  background: var(--button-hover-bg);
+  border-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+.language-pill input[type="checkbox"] {
+  accent-color: var(--button-bg);
+}
+
+#tag-remarks-row {
+  margin-top: 10px;
+}
+
+#tag-remarks-row textarea {
+  width: 100%;
+  min-height: 48px;
+  max-height: 200px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border-color);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  font-size: 0.95em;
+  resize: vertical;
+}
+
+#tag-button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#tag-button-row button {
+  flex: 1;
+}
+
+.media-placeholder {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  background: var(--sidebar-bg);
+  color: var(--text-color);
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  font-size: 1.2em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#video-player {
+  position: relative;
+  display: none;
+}
+
+.audio-control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--border-color);
+}
+
+.audio-toggle-btn {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--button-bg);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.audio-toggle-btn:active {
+  transform: scale(0.97);
+}
+
+.audio-status {
+  font-size: 0.9em;
+  color: var(--text-muted, var(--text-color));
+}
+
+#video-player.audio-mode .media-placeholder {
+  display: flex;
+}
+
+#video-player.audio-mode #media-content video,
+#video-player.audio-mode #media-content .plyr__video-wrapper,
+#video-player.audio-mode #media-content iframe,
+#video-player.audio-mode #media-content .plyr__poster {
+  display: none !important;
+}
+
+#video-player.audio-mode #media-content .plyr,
+#video-player.audio-mode #media-content video {
+  display: none !important;
+}
+
+#video-player.audio-mode .audio-control-bar {
+  display: flex !important;
+}
+
+#video-player.video-mode .media-placeholder {
+  display: none;
+}
+
+#video-player.video-mode .audio-control-bar {
+  display: none !important;
 }
 
 #sidebar {
@@ -188,4 +426,98 @@ body {
   #controls-tag-row #tag-section {
     margin-left: 0; /* Remove left margin when stacked */
   }
+
+  #interaction-panels {
+    width: 100%;
+  }
+}
+
+.admin-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.admin-modal[hidden] {
+  display: none;
+}
+
+.admin-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.admin-modal-content {
+  position: relative;
+  background: var(--panel-bg);
+  color: var(--text-color);
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  max-width: 420px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 2001;
+}
+
+.admin-modal-content h2 {
+  margin: 0;
+}
+
+#admin-password-section,
+#admin-toggle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#admin-password-section input,
+#admin-toggle-section input[type="checkbox"] {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border-color);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  font-size: 1em;
+}
+
+#admin-auth-btn,
+#admin-close-btn {
+  align-self: flex-end;
+  padding: 8px 18px;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+#admin-auth-btn:hover,
+#admin-close-btn:hover {
+  background: var(--button-hover-bg);
+}
+
+#admin-error {
+  color: #e74c3c;
+  min-height: 1.2em;
+}
+
+.media-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.toggle-help {
+  margin: 0;
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
 }

@@ -1,85 +1,172 @@
 // Tagging logic, tag list management with start/stop intervals
+
 function initTags() {
   window._timelineTags = window._timelineTags || [];
   let tagInProgress = null; // { start: number }
+
   const tagInput = document.getElementById('tag-input');
   const startTagBtn = document.getElementById('start-tag-btn');
   const endTagBtn = document.getElementById('end-tag-btn');
   const tagListBody = document.getElementById('tag-list-body');
+  const remarksInput = document.getElementById('tag-remarks-input');
+  const languageCheckboxes = Array.from(document.querySelectorAll('.tag-language-checkbox'));
   const video = document.getElementById('video'); // HTML5 video
 
-  // Helper to get current time from the active player
+  if (!tagInput || !startTagBtn || !endTagBtn || !tagListBody) {
+    return;
+  }
+
   function getCurrentTime() {
     if (window.ytPlayer && typeof window.ytPlayer.getCurrentTime === 'function') {
       return window.ytPlayer.getCurrentTime();
     } else if (video) {
       return video.currentTime;
-    } else {
-      return 0; // Fallback
     }
+    return 0;
   }
 
-  // Helper to seek the active player
   function seekPlayer(time) {
     if (window.ytPlayer && typeof window.ytPlayer.seekTo === 'function') {
       window.ytPlayer.seekTo(time, true);
     } else if (video) {
       video.currentTime = time;
-      video.focus(); // Keep focus for HTML5
+      video.focus();
     }
   }
 
-  // Render tag list table (sorted by start time)
+  function formatTime(seconds, showMs = false) {
+    if (isNaN(seconds) || seconds === null || seconds === undefined) {
+      return '00:00:00' + (showMs ? '.000' : '');
+    }
+    const totalSeconds = Math.max(0, seconds);
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const s = String(Math.floor(totalSeconds % 60)).padStart(2, '0');
+    if (showMs) {
+      const ms = String(Math.floor((totalSeconds % 1) * 1000)).padStart(3, '0');
+      return `${h}:${m}:${s}.${ms}`;
+    }
+    return `${h}:${m}:${s}`;
+  }
+
+  function formatLanguages(langs) {
+    return Array.isArray(langs) && langs.length ? langs.join(':') : '';
+  }
+
+  function parseLanguages(raw) {
+    if (!raw) return [];
+    return raw
+      .split(/[:;,]/)
+      .map(part => part.trim())
+      .filter(Boolean)
+      .map(entry => {
+        const match = LANGUAGE_OPTIONS.find(option => option.toLowerCase() === entry.toLowerCase());
+        return match || null;
+      })
+      .filter(Boolean);
+  }
+
+  // Map full language to initial
+  const LANG_TO_INITIAL = {
+    'Cantonese': 'C',
+    'English': 'E',
+    'Mandarin': 'M'
+  };
+
+  function languagesToInitials(langs) {
+    if (!Array.isArray(langs) || langs.length === 0) return '';
+    return langs.map(l => LANG_TO_INITIAL[l] || l?.[0]?.toUpperCase() || '').filter(Boolean).join(':');
+  }
+
+  // Remarks modal helpers
+  const remarksModal = document.getElementById('remarks-modal');
+  const remarksTextarea = document.getElementById('remarks-modal-text');
+  const remarksSaveBtn = document.getElementById('remarks-save-btn');
+  const remarksCloseEls = document.querySelectorAll('[data-remarks-close]');
+  let remarksEditingIndex = null;
+
+  function openRemarksModal(index) {
+    remarksEditingIndex = index;
+    const tag = window._timelineTags[index];
+    if (!tag) return;
+    if (remarksTextarea) remarksTextarea.value = tag.remarks || '';
+    if (remarksModal) remarksModal.hidden = false;
+    if (remarksTextarea) remarksTextarea.focus();
+  }
+
+  function closeRemarksModal() {
+    if (remarksModal) remarksModal.hidden = true;
+    remarksEditingIndex = null;
+  }
+
+  if (remarksSaveBtn) {
+    remarksSaveBtn.addEventListener('click', () => {
+      if (remarksEditingIndex === null) return closeRemarksModal();
+      const tag = window._timelineTags[remarksEditingIndex];
+      if (!tag) return closeRemarksModal();
+      tag.remarks = (remarksTextarea?.value || '').trim();
+      window.markDirty();
+      renderTagList();
+      closeRemarksModal();
+    });
+  }
+  remarksCloseEls.forEach(el => el.addEventListener('click', closeRemarksModal));
+  if (remarksModal) {
+    remarksModal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeRemarksModal();
+    });
+  }
+
   function renderTagList() {
     tagListBody.innerHTML = '';
     const sortedTags = [...window._timelineTags].sort((a, b) => a.start - b.start);
-    sortedTags.forEach((tag, i) => {
+
+    sortedTags.forEach((tag, index) => {
       const row = document.createElement('tr');
-      // Start cell
+
       const startCell = document.createElement('td');
       startCell.textContent = formatTime(tag.start, true);
       startCell.style.cursor = 'pointer';
-      startCell.addEventListener('click', () => {
-        seekPlayer(tag.start); // Use helper
-      });
+      startCell.addEventListener('click', () => seekPlayer(tag.start));
       row.appendChild(startCell);
-      // End cell
+
       const endCell = document.createElement('td');
       endCell.textContent = formatTime(tag.end, true);
       endCell.style.cursor = 'pointer';
-      endCell.addEventListener('click', () => {
-        seekPlayer(tag.end); // Use helper
-      });
+      endCell.addEventListener('click', () => seekPlayer(tag.end));
       row.appendChild(endCell);
-      // Tag cell (editable, with chip)
+
+      const languagesCell = document.createElement('td');
+      languagesCell.className = 'languages-cell';
+      languagesCell.textContent = languagesToInitials(tag.languages);
+      row.appendChild(languagesCell);
+
       const tagCell = document.createElement('td');
-      const colorIdx = i % 5;
+      tagCell.className = 'tag-cell';
       const chip = document.createElement('span');
-      chip.className = `tag-chip timeline-interval-color-${colorIdx}`;
-      chip.textContent = tag.label;
+      chip.className = `tag-chip timeline-interval-color-${index % 5}`;
+      chip.textContent = tag.label || '9999';
       tagCell.appendChild(chip);
       tagCell.contentEditable = true;
 
-      // Helper to save tag edit
-      function saveTagEdit() {
-        const newLabel = tagCell.textContent.trim() || '9999';
+      function commitTagLabel() {
+        const value = tagCell.textContent.trim() || '9999';
         const idx = window._timelineTags.findIndex(t => t === tag);
         if (idx !== -1) {
-          window._timelineTags[idx].label = newLabel;
+          window._timelineTags[idx].label = value;
         }
-        // Restore chip after editing
         tagCell.innerHTML = '';
-        chip.textContent = newLabel; // Use the potentially updated label
+        chip.textContent = value;
         tagCell.appendChild(chip);
         window.updateTimelineMarkers(window._timelineTags);
         window.updateTagSummary();
         window.markDirty();
       }
+
       tagCell.addEventListener('focus', () => {
-        // Temporarily remove chip and show raw text for editing
-        tagCell.textContent = tag.label === '9999' ? '' : tag.label;
+        tagCell.textContent = (tag.label === '9999' ? '' : tag.label);
       });
-      tagCell.addEventListener('blur', saveTagEdit);
+      tagCell.addEventListener('blur', commitTagLabel);
       tagCell.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -87,34 +174,50 @@ function initTags() {
         }
       });
       row.appendChild(tagCell);
-      // Actions cell
+
+      const remarksCell = document.createElement('td');
+      remarksCell.className = 'remarks-cell';
+      const viewBtn = document.createElement('button');
+      viewBtn.className = 'remarks-view-btn';
+      viewBtn.textContent = (tag.remarks && tag.remarks.length) ? 'View' : 'Add';
+      viewBtn.title = 'View/Edit remarks';
+      viewBtn.addEventListener('click', () => openRemarksModal(window._timelineTags.indexOf(tag)));
+      remarksCell.appendChild(viewBtn);
+      row.appendChild(remarksCell);
+
       const actionsCell = document.createElement('td');
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '🗑️';
-      delBtn.className = 'tag-delete-btn';
-      delBtn.title = 'Delete tag';
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent row click handler
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'tag-delete-btn';
+      deleteBtn.textContent = '🗑️';
+      deleteBtn.title = 'Delete tag';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const idx = window._timelineTags.findIndex(t => t === tag);
         if (idx !== -1) {
           window._timelineTags.splice(idx, 1);
+          renderTagList();
+          window.updateTimelineMarkers(window._timelineTags);
+          window.updateTagSummary();
+          window.markDirty();
         }
-        renderTagList();
-        window.updateTimelineMarkers(window._timelineTags);
-        window.updateTagSummary();
-        window.markDirty();
       });
-      actionsCell.appendChild(delBtn);
+      actionsCell.appendChild(deleteBtn);
       row.appendChild(actionsCell);
+
       tagListBody.appendChild(row);
     });
   }
-  window.renderTagList = renderTagList; // Expose for load.js
 
-  // Start Tag (records start time)
+  window.renderTagList = renderTagList;
+
   startTagBtn.addEventListener('click', () => {
-    const currentTime = getCurrentTime(); // Use helper
-    // Check if player is ready (duration exists for HTML5, or YT player exists)
+    if (!(window.currentVID || '').trim()) {
+      alert('Please enter a VID before tagging.');
+      const vidField = document.getElementById('vid-input');
+      if (vidField) vidField.focus();
+      return;
+    }
+    const currentTime = getCurrentTime();
     const isReady = (video && video.duration) || window.ytPlayer;
     if (!isReady) return;
 
@@ -122,76 +225,63 @@ function initTags() {
     startTagBtn.disabled = true;
     endTagBtn.disabled = false;
     tagInput.disabled = true;
+    if (remarksInput) remarksInput.disabled = true;
+    languageCheckboxes.forEach(cb => { cb.disabled = true; });
     startTagBtn.textContent = 'Tagging...';
-    // Show green dot on timeline
     if (typeof window.showStartDotOnTimeline === 'function') {
       window.showStartDotOnTimeline(tagInProgress.start);
     }
   });
 
-  // End Tag (records end time and label)
   endTagBtn.addEventListener('click', () => {
-    console.log('[tag] endTagBtn click, tagInProgress:', tagInProgress, 'label:', tagInput.value.trim());
     if (!tagInProgress) return;
-    const currentTime = getCurrentTime(); // Use helper
-    console.log('[tag] currentTime:', currentTime);
+    const currentTime = getCurrentTime();
 
     let label = tagInput.value.trim();
     if (!label) label = '9999';
     const end = currentTime;
-    // Basic validation: end time should be after start time
+    const languages = languageCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+    const remarks = remarksInput ? remarksInput.value.trim() : '';
+
     if (end < tagInProgress.start) {
-        console.warn('[tag] End time is before start time. Ignoring tag.');
-        alert('Error: End time cannot be before start time.');
-        // Reset tagging state without saving
-        tagInProgress = null;
-        startTagBtn.disabled = false;
-        endTagBtn.disabled = true;
-        tagInput.disabled = false;
-        startTagBtn.textContent = 'Mark Start';
-        if (typeof window.removeStartDotFromTimeline === 'function') {
-          window.removeStartDotFromTimeline();
-        }
-        return;
+      console.warn('[tag] End time is before start time. Ignoring tag.');
+      alert('Error: End time cannot be before start time.');
+      tagInProgress = null;
+      startTagBtn.disabled = false;
+      endTagBtn.disabled = true;
+      tagInput.disabled = false;
+      if (remarksInput) remarksInput.disabled = false;
+      languageCheckboxes.forEach(cb => { cb.disabled = false; });
+      startTagBtn.textContent = 'Mark Start';
+      if (typeof window.removeStartDotFromTimeline === 'function') {
+        window.removeStartDotFromTimeline();
+      }
+      return;
     }
 
-    window._timelineTags.push({ start: tagInProgress.start, end, label });
-    console.log('[tag] pushed tag:', { start: tagInProgress.start, end, label }, 'window._timelineTags:', window._timelineTags);
+    window._timelineTags.push({ start: tagInProgress.start, end, label, languages, remarks });
     tagInProgress = null;
     tagInput.value = '';
     startTagBtn.disabled = false;
     endTagBtn.disabled = true;
     tagInput.disabled = false;
+    if (remarksInput) {
+      remarksInput.value = '';
+      remarksInput.disabled = false;
+    }
+    languageCheckboxes.forEach(cb => {
+      cb.checked = false;
+      cb.disabled = false;
+    });
     startTagBtn.textContent = 'Mark Start';
     renderTagList();
     window.updateTimelineMarkers(window._timelineTags);
     window.updateTagSummary();
     window.markDirty();
-    // Remove green dot
     if (typeof window.removeStartDotFromTimeline === 'function') {
       window.removeStartDotFromTimeline();
     }
   });
 
-  // Utility for time formatting (sync with video.js)
-  function formatTime(seconds, showMs = false) {
-    // Handle potential NaN or undefined input
-    if (isNaN(seconds) || seconds === null || seconds === undefined) {
-        return '00:00:00' + (showMs ? '.000' : '');
-    }
-    const totalSeconds = Math.max(0, seconds); // Ensure non-negative
-    const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-    const s = String(Math.floor(totalSeconds % 60)).padStart(2, '0');
-    if (showMs) {
-      const ms = String(Math.floor((totalSeconds % 1) * 1000)).padStart(3, '0');
-      return `${h}:${m}:${s}.${ms}`;
-    } else {
-      return `${h}:${m}:${s}`;
-    }
-  }
-
-  // Initial render
   renderTagList();
-  // window.updateTagSummary(); // main.js calls this
 }

@@ -13,11 +13,21 @@ function initLoad() {
         try {
           const data = JSON.parse(evt.target.result);
           if (!data.tags || !Array.isArray(data.tags)) throw new Error('Invalid session file.');
-          window._timelineTags = data.tags;
+          window._timelineTags = data.tags.map(tag => ({
+            start: typeof tag.start === 'number' ? tag.start : 0,
+            end: typeof tag.end === 'number' ? tag.end : 0,
+            label: tag.label || '9999',
+            languages: Array.isArray(tag.languages) ? tag.languages.filter(l => LANGUAGE_OPTIONS.includes(l)) : [],
+            remarks: tag.remarks || ''
+          }));
           window.currentVideoSource = data.videoSource || '';
-          if (typeof window.updateTagSummary === 'function') window.updateTagSummary();
+          window.currentVID = (data.vid || '').trim();
+          const vidInput = document.getElementById('vid-input');
+          if (vidInput) vidInput.value = window.currentVID;
+          if (typeof window.renderTagList === 'function') window.renderTagList();
           if (typeof window.updateTimelineMarkers === 'function') window.updateTimelineMarkers(window._timelineTags);
-          if (typeof window.initTags === 'function') window.initTags();
+          if (typeof window.updateTagSummary === 'function') window.updateTagSummary();
+          window.markSaved();
           alert('Session loaded!');
         } catch (err) {
           alert('Failed to load session: ' + err.message);

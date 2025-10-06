@@ -41,6 +41,7 @@
             </svg>
           </button>
           <div class="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
+          <button id="admin-btn" class="admin-btn" title="Open admin controls">Admin</button>
         </div>
 
         <h1 style="font-size:2.2em; margin-bottom: 32px; color:#3366cc;">Video Tagger</h1>
@@ -52,34 +53,80 @@
         </div>
         <div id="no-video-message" style="color: #888; font-size:1.15em;">Please load a local video file or enter a YouTube link.</div>
       </div>
+      <div id="timeline-container" style="display:none;">
+        <h3 class="section-header timeline-label"><span class="icon">🕒</span> Timeline</h3>
+        <div id="timeline" class="timeline-panel"></div>
+      </div>
       <div id="video-player" style="display: none;">
-        <video id="video" width="100%">
-          <source src="" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
+        <div id="audio-only-placeholder" class="media-placeholder" aria-live="polite">No Video</div>
+        <div id="audio-control-bar" class="audio-control-bar" hidden>
+          <button id="audio-toggle-btn" class="audio-toggle-btn" type="button" aria-label="Play audio">Play</button>
+          <input type="range" id="audio-progress" min="0" max="0" value="0" step="0.1" aria-label="Seek audio position">
+          <span id="audio-status" class="audio-status" aria-live="polite">00:00 / 00:00</span>
+        </div>
+        <div id="media-content">
+          <div id="html5-wrapper">
+            <video id="video" width="100%">
+              <source src="" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <div id="youtube-container" hidden></div>
+        </div>
       </div>
       <!-- New container for Jump Time and Add Tag -->
       <div id="controls-tag-row" style="display: none;">
-        <div id="jump-controls-container">
-          <h3 class="section-header"><span class="icon">⏱️</span> Jump to Time</h3>
-          <div id="jump-controls">
-            <input id="jump-time-input" type="text" placeholder="HH:MM:SS.mmm">
-            <button id="jump-time-btn">Go</button>
-          </div>
-        </div>
-        <section id="tag-section" class="panel">
-          <h3 class="section-header"><span class="icon">🏷️</span> Add Tag</h3>
-          <div id="tag-input-row">
-            <input type="text" id="tag-input" placeholder="Enter tag...">
-            <button id="start-tag-btn">Mark Start</button>
-            <button id="end-tag-btn">Mark End</button>
-          </div>
+        <section id="metadata-section" class="panel">
+          <h3 class="section-header"><span class="icon">🆔</span> Session Metadata</h3>
+          <label class="metadata-field" for="vid-input">
+            <span>VID (required)</span>
+            <input type="text" id="vid-input" placeholder="Enter VID">
+          </label>
         </section>
+        <div id="interaction-panels">
+          <div id="jump-controls-container">
+            <h3 class="section-header"><span class="icon">⏱️</span> Jump to Time</h3>
+            <div id="jump-controls">
+              <input id="jump-time-input" type="text" placeholder="HH:MM:SS.mmm">
+              <button id="jump-time-btn">Go</button>
+            </div>
+          </div>
+          <section id="tag-section" class="panel">
+            <h3 class="section-header"><span class="icon">🏷️</span> Add Tag</h3>
+            <div id="tag-input-row">
+              <input type="text" id="tag-input" placeholder="Tag label (optional)">
+            </div>
+            <div id="language-selector" class="language-selector" role="group" aria-label="Tag languages">
+              <span class="language-label">Language</span>
+              <div class="language-pill-group">
+                <label class="language-pill">
+                  <input type="checkbox" class="tag-language-checkbox" value="Cantonese">
+                  <span>Cantonese</span>
+                </label>
+                <label class="language-pill">
+                  <input type="checkbox" class="tag-language-checkbox" value="English">
+                  <span>English</span>
+                </label>
+                <label class="language-pill">
+                  <input type="checkbox" class="tag-language-checkbox" value="Mandarin">
+                  <span>Mandarin</span>
+                </label>
+              </div>
+            </div>
+            <div id="tag-remarks-row">
+              <textarea id="tag-remarks-input" placeholder="Remarks (optional)" rows="2"></textarea>
+            </div>
+            <div id="tag-button-row">
+              <button id="start-tag-btn">Mark Start</button>
+              <button id="end-tag-btn">Mark End</button>
+            </div>
+          </section>
+        </div>
       </div>
-      <h3 class="section-header timeline-label" style="display:none;"><span class="icon">🕒</span> Timeline</h3>
-      <div id="timeline" class="timeline-panel" style="display: none;"></div>
+      
     </section>
     <aside id="sidebar" style="display:none;">      <!-- Sidebar Theme Toggle -->      <div id="theme-toggle-sidebar" class="theme-toggle-container">
+        <button class="go-home-btn" data-home-trigger title="Return to home screen">Home</button>
         <button class="theme-toggle" title="Toggles light & dark" aria-label="auto" aria-live="polite">
           <svg class="sun-and-moon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24">
             <mask class="moon" id="moon-mask">
@@ -105,7 +152,7 @@
       <h3 class="section-header taglist-header"><span class="icon">📋</span> Tag List</h3>
       <table id="tag-list-table">
         <thead>
-          <tr><th>Start</th><th>End</th><th>Tag</th><th>Actions</th></tr>
+          <tr><th>Start</th><th>End</th><th>Lang</th><th>Tag</th><th>Remarks</th><th>Del</th></tr>
         </thead>
         <tbody id="tag-list-body">
           <!-- Tag rows go here -->
@@ -151,10 +198,12 @@
         el = document.getElementById('video-loader') || document.getElementById('video-hero');
         if (el) el.style.display = 'none';
         el = document.getElementById('video-player'); if (el) el.style.display = '';
+        // Show new timeline container
+        el = document.getElementById('timeline-container'); if (el) el.style.display = '';
         // Show the new combined controls row
         el = document.getElementById('controls-tag-row'); if (el) el.style.display = 'flex'; // Use flex for the row
-        el = document.querySelector('.timeline-label'); if (el) el.style.display = 'block'; // Show timeline header
-        el = document.getElementById('timeline'); if (el) el.style.display = 'block'; // Show timeline itself
+        // Old timeline header is replaced by timeline-container
+        el = document.getElementById('timeline'); if (el) el.style.display = 'block'; // Ensure timeline itself is visible
         el = document.getElementById('sidebar'); if (el) el.style.display = 'flex'; // Use flex for sidebar
         // No longer need to show tag-section separately
       }
@@ -179,5 +228,39 @@
   </script>
   <!-- Add YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
+
+  <div id="admin-modal" class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" hidden>
+    <div class="admin-modal-backdrop" data-admin-close></div>
+    <div class="admin-modal-content">
+      <h2 id="admin-modal-title">Admin Controls</h2>
+      <div id="admin-password-section">
+        <label for="admin-password-input">Enter password</label>
+        <input type="password" id="admin-password-input" autocomplete="current-password" placeholder="Password">
+        <button id="admin-auth-btn">Unlock</button>
+        <div id="admin-error" role="alert"></div>
+      </div>
+      <div id="admin-toggle-section" hidden>
+        <label class="media-toggle">
+          <input type="checkbox" id="media-mode-toggle">
+          <span>Enable video playback by default</span>
+        </label>
+        <p class="toggle-help">When off, the player remains in audio-only mode with the "No Video" placeholder.</p>
+      </div>
+      <button id="admin-close-btn" data-admin-close>Close</button>
+    </div>
+  </div>
+
+  <!-- Remarks Modal -->
+  <div id="remarks-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="remarks-modal-title" hidden>
+    <div class="modal-backdrop" data-remarks-close></div>
+    <div class="modal-content">
+      <h2 id="remarks-modal-title">Tag Remarks</h2>
+      <textarea id="remarks-modal-text" rows="6" placeholder="Enter remarks..."></textarea>
+      <div class="modal-actions">
+        <button id="remarks-cancel-btn" data-remarks-close>Cancel</button>
+        <button id="remarks-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

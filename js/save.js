@@ -4,9 +4,28 @@ function initSave() {
   saveBtn.addEventListener('click', () => {
     const tags = window._timelineTags || [];
     const videoSource = window.currentVideoSource || '';
+    const vid = (window.currentVID || '').trim();
+
+    if (!vid) {
+      alert('VID is required before saving the session.');
+      return;
+    }
+
+    const processedTags = (tags || []).slice().map(tag => {
+      const languages = Array.isArray(tag.languages) ? tag.languages.filter(Boolean) : [];
+      return {
+        start: tag.start,
+        end: tag.end,
+        label: tag.label || '9999',
+        languages: languages.slice(),
+        remarks: tag.remarks || ''
+      };
+    });
+
     const session = {
       videoSource,
-      tags
+      vid,
+      tags: processedTags
     };
     const json = JSON.stringify(session, null, 2);
     const blob = new Blob([json], { type: 'application/json' });

@@ -43,6 +43,11 @@
   border-bottom: 1px solid var(--border-color); /* Use CSS Variable */
   text-align: left;
 }
+#tag-list-table th {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--text-color);
+}
 #tag-list-table tr:hover {
   background: var(--table-hover-bg); /* Use CSS Variable */
   cursor: pointer;
@@ -60,9 +65,77 @@
 .tag-delete-btn:hover {
   color: #e74c3c; /* Keep delete color distinct */
 }
-/* Reduce timestamp font size in tag list table */
 #tag-list-table td:nth-child(1),
 #tag-list-table td:nth-child(2) {
   font-size: 0.80em; /* Smaller timestamp text */
   white-space: nowrap; /* Prevent line wrap */
+}
+#tag-list-table td:nth-child(4) {
+  padding: 8px 6px;
+}
+.languages-cell {
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.languages-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.languages-checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8em;
+  background: var(--sidebar-bg);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.languages-checkbox-group input[type="checkbox"] {
+  accent-color: var(--button-bg);
+}
+
+.remarks-cell {
+  min-width: 160px;
+  font-size: 0.9em;
+}
+
+.remarks-cell[contenteditable="true"] {
+  border-bottom: 1px dashed transparent;
+}
+
+.remarks-cell:focus {
+  outline: none;
+  border-bottom: 1px dashed var(--button-bg);
+}
+
+.tag-cell {
+  min-width: 140px;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.98em;
+  font-weight: 500;
+  color: var(--tag-chip-text);
+  margin-right: 2px;
+  background: var(--tag-chip-bg);
+  box-shadow: 0 1px 4px var(--tag-chip-shadow);
+  vertical-align: middle;
+  transition: background 0.2s;
+}
+
+.tag-cell[contenteditable="true"] {
+  min-height: 24px;
+}
+
+.tag-cell:focus {
+  outline: none;
+  border-bottom: 1px dashed var(--button-bg);
 }
