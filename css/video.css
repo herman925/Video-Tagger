@@ -12,6 +12,16 @@
   margin-bottom: 18px;
 }
 
+#youtube-container {
+  min-height: 360px;
+}
+
+#youtube-container iframe {
+  width: 100% !important;
+  min-height: 360px;
+  display: block;
+}
+
 #controls {
   display: flex;
   align-items: center;
