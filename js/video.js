@@ -35,8 +35,11 @@ function updateAudioControls() {
   const { video, audioToggleBtn, audioStatus, audioProgress } = getMediaElements();
   if (!audioToggleBtn || !audioStatus) return;
 
-  // Detect source: HTML5/Plyr or YouTube
-  const isYouTube = !!window.ytPlayer;
+  // Detect source: HTML5/Plyr or YouTube (guard function existence)
+  const isYouTube = !!window.ytPlayer
+    && typeof window.ytPlayer.getDuration === 'function'
+    && typeof window.ytPlayer.getCurrentTime === 'function'
+    && typeof window.ytPlayer.getPlayerState === 'function';
   const hasSource = isYouTube
     ? typeof window.ytPlayer.getDuration === 'function' && window.ytPlayer.getDuration() > 0
     : !!(video && (video.currentSrc || video.src));
@@ -50,16 +53,16 @@ function updateAudioControls() {
   }
 
   const isPlaying = isYouTube
-    ? (window.ytPlayer.getPlayerState && window.ytPlayer.getPlayerState() === YT.PlayerState.PLAYING)
+    ? (window.ytPlayer.getPlayerState() === YT.PlayerState.PLAYING)
     : (!video.paused && !video.ended);
   audioToggleBtn.textContent = isPlaying ? 'Pause' : 'Play';
   audioToggleBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
 
   const current = isYouTube
-    ? (window.ytPlayer.getCurrentTime ? window.ytPlayer.getCurrentTime() : 0)
+    ? window.ytPlayer.getCurrentTime()
     : (video.currentTime || 0);
   const duration = isYouTube
-    ? (window.ytPlayer.getDuration ? window.ytPlayer.getDuration() : 0)
+    ? window.ytPlayer.getDuration()
     : (Number.isFinite(video.duration) && video.duration > 0
         ? video.duration
         : (window.plyrInstance && Number.isFinite(window.plyrInstance.duration) ? window.plyrInstance.duration : 0));
@@ -102,15 +105,18 @@ window.applyMediaMode = function applyMediaMode() {
       youtubeContainer.style.opacity = '0';
       youtubeContainer.style.pointerEvents = 'none';
       youtubeContainer.style.height = '0';
+      youtubeContainer.style.display = '';
     } else {
       youtubeContainer.style.opacity = '';
       youtubeContainer.style.pointerEvents = '';
       youtubeContainer.style.height = '';
+      youtubeContainer.style.display = '';
     }
   } else if (youtubeContainer) {
     youtubeContainer.style.opacity = '';
     youtubeContainer.style.pointerEvents = '';
     youtubeContainer.style.height = '';
+    youtubeContainer.style.display = '';
   }
 
   if (mode === MEDIA_MODE.AUDIO) {
@@ -150,7 +156,8 @@ function createYouTubePlayer(videoId) {
     width: '100%',
     videoId: videoId,
     playerVars: {
-      'playsinline': 1 // Important for mobile playback
+      'playsinline': 1, // Important for mobile playback
+      'origin': (window.location && window.location.origin) ? window.location.origin : undefined
     },
     events: {
       'onReady': onPlayerReady,
