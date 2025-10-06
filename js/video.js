@@ -157,7 +157,8 @@ function createYouTubePlayer(videoId) {
     videoId: videoId,
     playerVars: {
       'playsinline': 1, // Important for mobile playback
-      'origin': (window.location && window.location.origin) ? window.location.origin : undefined
+      'origin': (window.location && window.location.origin) ? window.location.origin : undefined,
+      'host': 'https://www.youtube.com'
     },
     events: {
       'onReady': onPlayerReady,
@@ -508,7 +509,7 @@ function initVideo() {
   function drawTimelineRuler() {
     const timeline = document.getElementById('timeline');
     // Use YT player duration if available, otherwise HTML5 video
-    const duration = window.ytPlayer ? window.ytPlayer.getDuration() : (window.plyrInstance ? window.plyrInstance.duration : video.duration);
+    const duration = (window.ytPlayer && typeof window.ytPlayer.getDuration === 'function') ? window.ytPlayer.getDuration() : (window.plyrInstance ? window.plyrInstance.duration : video.duration);
 
     if (!timeline || !duration || duration <= 0) return;
 
@@ -578,7 +579,7 @@ function initVideo() {
   // Show a green dot at the start tag position when tagging is in progress
   window.showStartDotOnTimeline = function(startTime) {
     const timeline = document.getElementById('timeline');
-    const duration = window.ytPlayer ? window.ytPlayer.getDuration() : (window.plyrInstance ? window.plyrInstance.duration : video.duration);
+    const duration = (window.ytPlayer && typeof window.ytPlayer.getDuration === 'function') ? window.ytPlayer.getDuration() : (window.plyrInstance ? window.plyrInstance.duration : video.duration);
     if (!timeline || !duration) return;
     // Remove any existing dot first
     window.removeStartDotFromTimeline();
@@ -598,7 +599,7 @@ function initVideo() {
   function updateTimelineMarkers(tagList) {
     console.log('[timeline] updateTimelineMarkers called', tagList);
     const timeline = document.getElementById('timeline'); // Ensure timeline is defined
-    const duration = window.ytPlayer ? window.ytPlayer.getDuration() : (window.plyrInstance ? window.plyrInstance.duration : video.duration);
+    const duration = (window.ytPlayer && typeof window.ytPlayer.getDuration === 'function') ? window.ytPlayer.getDuration() : (window.plyrInstance ? window.plyrInstance.duration : video.duration);
 
     // Clear only interval bars, not the ruler markers
     timeline.querySelectorAll('.timeline-interval, .timeline-start-dot, #timeline-context-menu').forEach(el => el.remove());

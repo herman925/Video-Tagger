@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.ytPlayer.stopVideo();
       }
       window.currentVideoSource = '';
-      window.mediaMode = 'audio';
       if (typeof window.applyMediaMode === 'function') {
         window.applyMediaMode();
       }
