@@ -16,6 +16,10 @@ function initTags() {
     return;
   }
 
+  document.addEventListener('video-tagger:session-cleared', () => {
+    tagInProgress = null;
+  });
+
   function getCurrentTime() {
     if (window.ytPlayer && typeof window.ytPlayer.getCurrentTime === 'function') {
       return window.ytPlayer.getCurrentTime();

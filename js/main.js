@@ -93,6 +93,127 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initAdminControls();
 
+  // Tear down active players and reset media UI so a fresh source can load cleanly.
+  function resetMediaState(reason) {
+    const elements = (typeof getMediaElements === 'function') ? getMediaElements() : {};
+
+    if (window._ytTimeInterval) {
+      clearInterval(window._ytTimeInterval);
+      window._ytTimeInterval = null;
+    }
+
+    if (window.ytPlayer) {
+      try {
+        if (typeof window.ytPlayer.destroy === 'function') {
+          window.ytPlayer.destroy();
+        } else if (typeof window.ytPlayer.stopVideo === 'function') {
+          window.ytPlayer.stopVideo();
+        }
+      } catch (err) {
+        console.warn('[main.js] Error tearing down YouTube player during reset', err);
+      }
+      window.ytPlayer = null;
+    }
+
+    if (window.plyrInstance) {
+      try {
+        window.plyrInstance.destroy();
+      } catch (err) {
+        console.warn('[main.js] Error destroying Plyr instance during reset', err);
+      }
+      window.plyrInstance = null;
+    }
+
+    if (window._currentObjectUrl) {
+      try {
+        URL.revokeObjectURL(window._currentObjectUrl);
+      } catch (err) {
+        console.warn('[main.js] Failed to revoke previous object URL during reset', err);
+      }
+      window._currentObjectUrl = null;
+    }
+
+    const videoEl = elements.video || document.getElementById('video');
+    if (videoEl) {
+      try { videoEl.pause(); } catch (err) { console.warn('[main.js] pause() failed during reset', err); }
+      try { videoEl.currentTime = 0; } catch (err) { /* ignore */ }
+      videoEl.oncanplay = null;
+      const sourceEl = videoEl.querySelector('source');
+      if (sourceEl) sourceEl.src = '';
+      if (videoEl.getAttribute('src')) videoEl.removeAttribute('src');
+      videoEl.load();
+      videoEl.style.display = '';
+    }
+
+    if (elements.youtubeContainer) {
+      elements.youtubeContainer.innerHTML = '';
+      elements.youtubeContainer.hidden = true;
+      elements.youtubeContainer.style.opacity = '';
+      elements.youtubeContainer.style.pointerEvents = '';
+      elements.youtubeContainer.style.display = '';
+      elements.youtubeContainer.style.height = '';
+    }
+    if (elements.html5Wrapper) {
+      elements.html5Wrapper.hidden = false;
+    }
+
+    if (elements.audioToggleBtn) {
+      elements.audioToggleBtn.disabled = true;
+      elements.audioToggleBtn.textContent = 'Play';
+      elements.audioToggleBtn.setAttribute('aria-label', 'Play audio');
+    }
+    if (elements.audioStatus) {
+      elements.audioStatus.textContent = '00:00 / 00:00';
+    }
+    if (elements.audioProgress) {
+      elements.audioProgress.value = 0;
+      elements.audioProgress.max = 0;
+    }
+
+    if (typeof updateAudioControls === 'function') {
+      updateAudioControls();
+    }
+    if (typeof logPlayerLayout === 'function') {
+      logPlayerLayout(`resetMediaState:${reason}`);
+    }
+  }
+
+  // Clear tag data and disable tagging controls for a new session.
+  function clearTaggingSession(reason) {
+    window._timelineTags = [];
+    if (typeof window.renderTagList === 'function') window.renderTagList();
+    if (typeof window.updateTimelineMarkers === 'function') window.updateTimelineMarkers([]);
+    if (typeof window.updateTagSummary === 'function') window.updateTagSummary();
+    if (typeof window.removeStartDotFromTimeline === 'function') window.removeStartDotFromTimeline();
+
+    if (startTagBtn) {
+      startTagBtn.disabled = true;
+      startTagBtn.textContent = 'Mark Start';
+    }
+    if (endTagBtn) endTagBtn.disabled = true;
+    if (tagInput) {
+      tagInput.value = '';
+      tagInput.disabled = true;
+    }
+    if (remarksInput) {
+      remarksInput.value = '';
+      remarksInput.disabled = true;
+    }
+    languageCheckboxes.forEach(cb => {
+      cb.checked = false;
+      cb.disabled = true;
+    });
+
+    if (typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('video-tagger:session-cleared', { detail: { reason } }));
+    }
+  }
+
+  document.addEventListener('video-tagger:clear-session-request', (event) => {
+    clearTaggingSession(event?.detail?.reason || 'external-request');
+    window.markDirty();
+  });
+
   if (goHomeBtn) {
     goHomeBtn.addEventListener('click', () => {
       const videoLoader = document.getElementById('video-loader') || document.getElementById('video-hero');
@@ -100,29 +221,40 @@ document.addEventListener('DOMContentLoaded', () => {
       const controlsRow = document.getElementById('controls-tag-row');
       const timelineLabel = document.querySelector('.timeline-label');
       const timeline = document.getElementById('timeline');
+      const timelineContainer = document.getElementById('timeline-container');
       const sidebar = document.getElementById('sidebar');
+      const noVideoMsg = document.getElementById('no-video-message');
+      const youtubeInput = document.getElementById('youtube-url');
 
       if (videoLoader) videoLoader.style.display = 'flex';
       if (videoPlayer) videoPlayer.style.display = 'none';
       if (controlsRow) controlsRow.style.display = 'none';
       if (timelineLabel) timelineLabel.style.display = 'none';
       if (timeline) timeline.style.display = 'none';
+      if (timelineContainer) timelineContainer.style.display = 'none';
       if (sidebar) sidebar.style.display = 'none';
 
-      if (window.plyrInstance) {
-        window.plyrInstance.pause();
+      resetMediaState('home');
+      clearTaggingSession('home');
+
+      if (vidInput) {
+        vidInput.value = '';
+        window.currentVID = '';
       }
-      const videoEl = document.getElementById('video');
-      if (videoEl) {
-        videoEl.pause();
-        videoEl.currentTime = 0;
+      if (youtubeInput) {
+        youtubeInput.value = '';
       }
-      if (window.ytPlayer && typeof window.ytPlayer.stopVideo === 'function') {
-        window.ytPlayer.stopVideo();
+      if (noVideoMsg) {
+        noVideoMsg.style.display = '';
       }
+
+      window.pendingYouTubeLoad = null;
       window.currentVideoSource = '';
       if (typeof window.applyMediaMode === 'function') {
         window.applyMediaMode();
+      }
+      if (typeof window.markSaved === 'function') {
+        window.markSaved();
       }
     });
   }

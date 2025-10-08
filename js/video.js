@@ -24,6 +24,99 @@ function getMediaElements() {
   };
 }
 
+// Collect layout-related details for console logging without crashing on missing nodes.
+function describeElementForLog(element) {
+  if (!element) return null;
+  try {
+    const rect = element.getBoundingClientRect ? element.getBoundingClientRect() : null;
+    const computed = window.getComputedStyle ? window.getComputedStyle(element) : null;
+    const summarizeRect = rect
+      ? {
+          top: Number(rect.top.toFixed(2)),
+          left: Number(rect.left.toFixed(2)),
+          width: Number(rect.width.toFixed(2)),
+          height: Number(rect.height.toFixed(2))
+        }
+      : null;
+    const summarizeStyles = computed
+      ? {
+          display: computed.display,
+          visibility: computed.visibility,
+          opacity: computed.opacity,
+          pointerEvents: computed.pointerEvents,
+          position: computed.position,
+          zIndex: computed.zIndex
+        }
+      : null;
+    const parents = [];
+    let current = element;
+    while (current && parents.length < 4) {
+      const id = current.id ? `#${current.id}` : current.tagName?.toLowerCase() || '';
+      const className = current.className ? `.${String(current.className).trim().replace(/\s+/g, '.')}` : '';
+      parents.push(`${id}${className}`);
+      current = current.parentElement;
+    }
+    return {
+      tag: element.tagName?.toLowerCase() || '',
+      id: element.id || null,
+      classes: element.className || '',
+      hiddenAttr: !!element.hidden,
+      inlineDisplay: element.style?.display || '',
+      hiddenStyle: element.style?.visibility || '',
+      size: {
+        offsetWidth: element.offsetWidth,
+        offsetHeight: element.offsetHeight,
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight
+      },
+      rect: summarizeRect,
+      styles: summarizeStyles,
+      childCount: element.children ? element.children.length : 0,
+      firstChildren: Array.from(element.children || [])
+        .slice(0, 3)
+        .map(child => {
+          const childId = child.id ? `#${child.id}` : child.tagName?.toLowerCase() || '';
+          const childClasses = child.className ? `.${String(child.className).trim().replace(/\s+/g, '.')}` : '';
+          return `${childId}${childClasses}`;
+        }),
+      ancestorChain: parents
+    };
+  } catch (err) {
+    return { error: err?.message || String(err) };
+  }
+}
+
+// Emit a grouped console log showing where the media player elements live on the page.
+function logPlayerLayout(context) {
+  try {
+    const elements = getMediaElements();
+    const ytIframe = elements.youtubeContainer?.querySelector('iframe') || null;
+    const info = {
+      context,
+      mediaMode: window.mediaMode,
+      hasYouTubePlayer: !!window.ytPlayer,
+      hasPlyrInstance: !!window.plyrInstance,
+      elements: {
+        player: describeElementForLog(elements.player),
+        html5Wrapper: describeElementForLog(elements.html5Wrapper),
+        video: describeElementForLog(elements.video),
+        youtubeContainer: describeElementForLog(elements.youtubeContainer),
+        youtubeIframe: describeElementForLog(ytIframe),
+        audioControlBar: describeElementForLog(elements.audioControlBar),
+        placeholder: describeElementForLog(elements.placeholder)
+      }
+    };
+    // Group logs to keep console readable
+    if (console.groupCollapsed) console.groupCollapsed(`[video.js] layout @ ${context}`);
+    console.info('[video.js] layout snapshot', info);
+    if (console.groupEnd) console.groupEnd();
+  } catch (err) {
+    console.warn('[video.js] Failed to log player layout', err);
+  }
+}
+
+window.logPlayerLayout = logPlayerLayout;
+
 function formatMediaTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
   const minutes = Math.floor(seconds / 60);
@@ -122,10 +215,13 @@ window.applyMediaMode = function applyMediaMode() {
   if (mode === MEDIA_MODE.AUDIO) {
     updateAudioControls();
   }
+
+  logPlayerLayout(`applyMediaMode:${mode}`);
 };
 
 function onYouTubeIframeAPIReady() {
   if (window.pendingYouTubeLoad) {
+    console.info('[video.js] onYouTubeIframeAPIReady called with pending ID', window.pendingYouTubeLoad);
     createYouTubePlayer(window.pendingYouTubeLoad);
     window.pendingYouTubeLoad = null;
   }
@@ -176,6 +272,8 @@ function createYouTubePlayer(videoId) {
     if (!window.ytPlayer) return;
     updateAudioControls();
   }, 200);
+
+  logPlayerLayout(`createYouTubePlayer:${videoId}`);
 }
 
 function onPlayerReady(event) {
@@ -197,6 +295,8 @@ function onPlayerReady(event) {
   if (typeof window.applyMediaMode === 'function') {
     window.applyMediaMode();
   }
+
+  logPlayerLayout('onPlayerReady');
 }
 
 function onPlayerStateChange(event) {
@@ -255,6 +355,8 @@ function initVideo() {
       window.applyMediaMode();
     }
     updateAudioControls();
+
+    logPlayerLayout('showPlayer');
   }
 
   if (audioToggleBtn) {
@@ -324,11 +426,16 @@ function initVideo() {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('video-tagger:clear-session-request', { detail: { reason: 'local-load' } }));
+    }
+
     // If a YouTube player exists, destroy it
     if (window.ytPlayer) {
       window.ytPlayer.destroy();
       window.ytPlayer = null;
       if (window._ytTimeInterval) { clearInterval(window._ytTimeInterval); window._ytTimeInterval = null; }
+      logPlayerLayout('localLoad:destroyedYouTube');
     }
     const { html5Wrapper, youtubeContainer } = getMediaElements();
     if (youtubeContainer) {
@@ -347,7 +454,17 @@ function initVideo() {
     // Ensure the HTML5 video tag is visible
     video.style.display = '';
 
+    if (window._currentObjectUrl) {
+      try {
+        URL.revokeObjectURL(window._currentObjectUrl);
+      } catch (err) {
+        console.warn('[video.js] Failed to revoke previous object URL', err);
+      }
+      window._currentObjectUrl = null;
+    }
+
     const url = URL.createObjectURL(file);
+    window._currentObjectUrl = url;
     const sourceEl = video.querySelector('source');
     if (sourceEl) {
       sourceEl.src = url;
@@ -358,6 +475,7 @@ function initVideo() {
     console.log('[video.js] Local video source set and load() called.');
 
     updateAudioControls();
+    logPlayerLayout('localLoad:sourceAssigned');
 
     // Initialize Plyr on the video element AFTER it's loaded
     // Use a timeout to ensure the element is ready, or listen for 'canplay'
@@ -374,6 +492,7 @@ function initVideo() {
                 // Ensure Plyr controls are visible after initialization
                 console.log('[video.js] Calling showPlayer() after Plyr initialization.');
                 showPlayer();
+                logPlayerLayout('localLoad:plyrReady');
             } catch (error) {
                 console.error('[video.js] Error initializing Plyr:', error);
             }
@@ -387,6 +506,7 @@ function initVideo() {
     console.log('[video.js] Calling window.showApp() or showPlayer() fallback.');
     if (window.showApp) window.showApp();
     else showPlayer(); // Fallback
+    logPlayerLayout('localLoad:showAppTriggered');
 
     noVideoMsg.style.display = 'none';
     window.currentVideoSource = file.name;
@@ -416,10 +536,23 @@ function initVideo() {
       return;
     }
 
+    if (typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('video-tagger:clear-session-request', { detail: { reason: 'youtube-load', videoId } }));
+    }
+
     // Destroy Plyr instance if it exists
     if (window.plyrInstance) {
         window.plyrInstance.destroy();
         window.plyrInstance = null;
+    }
+
+    if (window._currentObjectUrl) {
+      try {
+        URL.revokeObjectURL(window._currentObjectUrl);
+      } catch (err) {
+        console.warn('[video.js] Failed to revoke object URL before loading YouTube', err);
+      }
+      window._currentObjectUrl = null;
     }
 
     // Pause and hide HTML5 video
@@ -439,6 +572,7 @@ function initVideo() {
 
     updateAudioControls();
 
+    logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
     // Force video mode so iframe is visible
     window.mediaMode = MEDIA_MODE.VIDEO;
     if (typeof window.applyMediaMode === 'function') {
