@@ -396,6 +396,8 @@ function updateAudioControls(trigger = 'auto') {
   if (audioControlBar) {
     audioControlBar.hidden = false;
     audioControlBar.style.visibility = 'visible';
+    audioControlBar.style.opacity = '';
+    audioControlBar.style.display = 'flex';
   }
 
   const sourceType = window.ytPlayer
