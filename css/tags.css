@@ -37,6 +37,7 @@
   border-collapse: collapse;
   margin-bottom: 24px;
   background-color: var(--panel-bg); /* Match panel background */
+  table-layout: auto;
 }
 #tag-list-table th, #tag-list-table td {
   padding: 8px 6px;
@@ -70,12 +71,30 @@
   font-size: 0.80em; /* Smaller timestamp text */
   white-space: nowrap; /* Prevent line wrap */
 }
-#tag-list-table td:nth-child(4) {
-  padding: 8px 6px;
-}
 .languages-cell {
-  min-width: 150px;
-  max-width: 200px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+#tag-list-table th:nth-child(3),
+#tag-list-table td:nth-child(3) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+#tag-list-table th:nth-child(5),
+#tag-list-table td:nth-child(5) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+#tag-list-table th:nth-child(6),
+#tag-list-table td:nth-child(6) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .languages-checkbox-group {
@@ -100,8 +119,26 @@
 }
 
 .remarks-cell {
-  min-width: 160px;
   font-size: 0.9em;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.remarks-view-btn {
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: var(--button-secondary-bg, transparent);
+  color: var(--text-color);
+  font-size: 0.85em;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.remarks-view-btn:hover,
+.remarks-view-btn:focus-visible {
+  background: var(--button-secondary-hover-bg, rgba(255,255,255,0.1));
+  border-color: var(--button-bg);
+  outline: none;
 }
 
 .remarks-cell[contenteditable="true"] {
@@ -114,7 +151,7 @@
 }
 
 .tag-cell {
-  min-width: 140px;
+  min-width: 120px;
 }
 
 .tag-chip {

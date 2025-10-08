@@ -159,7 +159,13 @@
         </tbody>
       </table>
       <section id="tag-summary-section" class="panel">
-        <h3 class="section-header"><span class="icon">📊</span> Tag Summary</h3>
+        <div class="tag-summary-header">
+          <h3 class="section-header"><span class="icon">📊</span> Tag Summary</h3>
+          <div class="summary-mode-toggle" role="radiogroup" aria-label="Tag summary grouping">
+            <button type="button" class="summary-mode-btn is-active" data-summary-mode="tag" aria-pressed="true">By Tag</button>
+            <button type="button" class="summary-mode-btn" data-summary-mode="language" aria-pressed="false">By Lang</button>
+          </div>
+        </div>
         <table id="tag-summary-table">
           <thead>
             <tr><th>Tag</th><th>Frequency</th></tr>

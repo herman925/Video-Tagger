@@ -258,6 +258,12 @@ window.applyMediaMode = function applyMediaMode() {
 
   if (placeholder) {
     placeholder.setAttribute('aria-hidden', mode === MEDIA_MODE.VIDEO ? 'true' : 'false');
+    if (mode === MEDIA_MODE.AUDIO) {
+      const hasSource = window.ytPlayer || (window.plyrInstance && window.plyrInstance.media?.currentSrc) || document.getElementById('video')?.currentSrc;
+      placeholder.textContent = hasSource ? 'Audio playback active' : 'No Video';
+    } else {
+      placeholder.textContent = 'No Video';
+    }
   }
 
   if (audioControlBar) {
@@ -766,8 +772,9 @@ function initVideo() {
     updateAudioControls('youtube:load:init');
 
     logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
-    // Force video mode so iframe is visible
-    window.mediaMode = MEDIA_MODE.VIDEO;
+    // Respect the current media mode unless user previously selected video
+    const previousMode = window.mediaMode === MEDIA_MODE.VIDEO ? MEDIA_MODE.VIDEO : MEDIA_MODE.AUDIO;
+    window.mediaMode = previousMode;
     if (typeof window.applyMediaMode === 'function') {
       window.applyMediaMode();
     }
