@@ -395,8 +395,9 @@ function updateAudioControls(trigger = 'auto') {
   }
   if (audioControlBar) {
     audioControlBar.hidden = false;
+    audioControlBar.removeAttribute('hidden');
     audioControlBar.style.visibility = 'visible';
-    audioControlBar.style.opacity = '';
+    audioControlBar.style.opacity = '1';
     audioControlBar.style.display = 'flex';
   }
 
@@ -548,6 +549,12 @@ window.applyMediaMode = function applyMediaMode() {
 
   if (audioControlBar) {
     audioControlBar.hidden = mode !== MEDIA_MODE.AUDIO;
+    if (mode === MEDIA_MODE.AUDIO) {
+      audioControlBar.removeAttribute('hidden');
+      audioControlBar.style.display = 'flex';
+      audioControlBar.style.visibility = 'visible';
+      audioControlBar.style.opacity = '1';
+    }
   }
 
   if (window.plyrInstance && window.plyrInstance.elements?.container) {
