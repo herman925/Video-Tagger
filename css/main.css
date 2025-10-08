@@ -363,6 +363,10 @@ button:hover,
   display: none !important;
 }
 
+#video-player.video-mode #media-content iframe {
+  display: block !important;
+}
+
 #sidebar {
   flex-basis: 40%; /* Use 40% of the container width */
   flex-grow: 1;

@@ -156,9 +156,6 @@ function createYouTubePlayer(videoId) {
     'enablejsapi': 1
   };
 
-  console.log('[video.js] Creating YouTube player with vars:', playerVars);
-  console.log('[video.js] window.location.origin:', window.location.origin);
-
   window.ytPlayer = new YT.Player('youtube-embed', {
     height: '400', // Adjust as needed
     width: '100%',
