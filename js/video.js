@@ -412,6 +412,16 @@ function updateAudioControls(trigger = 'auto') {
   audioToggleBtn.disabled = !hasSource;
 
   if (!hasSource || (!video && !isYouTube)) {
+    const details = {
+      trigger,
+      sourceType,
+      ytPlayerAvailable: !!window.ytPlayer,
+      ytReadyState: window.ytPlayer ? safeYouTubeCall(window.ytPlayer, 'getPlayerState') : null,
+      html5HasVideo: !!video,
+      html5CurrentSrc: video?.currentSrc || null,
+      plyrActive: !!window.plyrInstance,
+      note: 'Audio controls disabled because no playable media source is available.'
+    };
     audioToggleBtn.textContent = 'Play';
     audioToggleBtn.setAttribute('aria-label', 'Play audio');
     audioStatus.textContent = '00:00 / 00:00';
@@ -420,8 +430,11 @@ function updateAudioControls(trigger = 'auto') {
       audioProgress.value = 0;
       audioProgress.max = 0;
     }
-    if (!hasSource && trigger !== 'auto') {
-      console.debug('[video.js] updateAudioControls skipped: no media source', { trigger, sourceType });
+    if (!hasSource) {
+      console.debug('[video.js] updateAudioControls skipped: no media source', details);
+      if (trigger !== 'auto') {
+        logPlayerLayout(`updateAudioControls:noSource:${trigger}`);
+      }
     }
     lastAudioControlSnapshot = null;
     return;
