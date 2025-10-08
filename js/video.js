@@ -151,15 +151,20 @@ function createYouTubePlayer(videoId) {
   playerDiv.id = 'youtube-embed'; // The API needs an element ID
   youtubeContainer.appendChild(playerDiv);
 
+  const playerVars = {
+    'playsinline': 1,
+    'origin': window.location.origin,
+    'enablejsapi': 1
+  };
+
+  console.log('[video.js] Creating YouTube player with vars:', playerVars);
+  console.log('[video.js] window.location.origin:', window.location.origin);
+
   window.ytPlayer = new YT.Player('youtube-embed', {
     height: '400', // Adjust as needed
     width: '100%',
     videoId: videoId,
-    playerVars: {
-      'playsinline': 1,
-      'origin': window.location.origin,
-      'enablejsapi': 1
-    },
+    playerVars: playerVars,
     events: {
       'onReady': onPlayerReady,
       'onStateChange': onPlayerStateChange // Optional: handle state changes
