@@ -644,6 +644,14 @@ function createYouTubePlayer(videoId) {
   if (typeof window.applyMediaMode === 'function') {
     window.applyMediaMode();
   }
+  const { audioControlBar } = getMediaElements();
+  if (audioControlBar && window.mediaMode === MEDIA_MODE.AUDIO) {
+    audioControlBar.hidden = false;
+    audioControlBar.removeAttribute('hidden');
+    audioControlBar.style.display = 'flex';
+    audioControlBar.style.visibility = 'visible';
+    audioControlBar.style.opacity = '1';
+  }
   // Start polling current time while in audio mode (YT doesn't emit timeupdate)
   if (window._ytTimeInterval) {
     clearInterval(window._ytTimeInterval);
@@ -1072,6 +1080,14 @@ function initVideo() {
     logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
     if (typeof window.applyMediaMode === 'function') {
       window.applyMediaMode();
+    }
+    const { audioControlBar } = getMediaElements();
+    if (audioControlBar && window.mediaMode === MEDIA_MODE.AUDIO) {
+      audioControlBar.hidden = false;
+      audioControlBar.removeAttribute('hidden');
+      audioControlBar.style.display = 'flex';
+      audioControlBar.style.visibility = 'visible';
+      audioControlBar.style.opacity = '1';
     }
     // Ensure the app section is shown even before YT ready
     if (window.showApp) window.showApp();
