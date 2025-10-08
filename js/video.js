@@ -153,7 +153,6 @@ function createYouTubePlayer(videoId) {
 
   const playerVars = {
     'playsinline': 1,
-    'origin': window.location.origin,
     'enablejsapi': 1
   };
 
