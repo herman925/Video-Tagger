@@ -384,7 +384,7 @@ function formatMediaTime(seconds) {
 }
 
 function updateAudioControls(trigger = 'auto') {
-  const { video, audioToggleBtn, audioStatus, audioProgress } = getMediaElements();
+  const { video, audioToggleBtn, audioStatus, audioProgress, audioControlBar } = getMediaElements();
   if (!audioToggleBtn || !audioStatus) {
     console.warn('[video.js] updateAudioControls missing controls', {
       trigger,
@@ -393,20 +393,25 @@ function updateAudioControls(trigger = 'auto') {
     });
     return;
   }
+  if (audioControlBar) {
+    audioControlBar.hidden = false;
+    audioControlBar.style.visibility = 'visible';
+  }
 
   const sourceType = window.ytPlayer
     ? 'youtube'
     : (window.plyrInstance ? 'plyr' : (video ? 'html5' : 'none'));
 
-  const ytStateAvailable = window.ytPlayer
+  const ytPlayer = window.ytPlayer || null;
+  const ytFunctionsAvailable = ytPlayer
     && typeof window.ytPlayer.getPlayerState === 'function'
     && typeof window.ytPlayer.getCurrentTime === 'function';
-  const ytDurationAvailable = window.ytPlayer
+  const ytDurationAvailable = ytPlayer
     && typeof window.ytPlayer.getDuration === 'function';
-  const isYouTube = sourceType === 'youtube' && ytStateAvailable;
+  const isYouTube = !!ytPlayer;
 
   const hasSource = isYouTube
-    ? !!window.ytPlayer // Allow controls even before duration is available
+    ? !!ytPlayer
     : !!(video && (video.currentSrc || video.src));
 
   audioToggleBtn.disabled = !hasSource;
@@ -445,12 +450,18 @@ function updateAudioControls(trigger = 'auto') {
   let rawDuration = 0;
 
   if (isYouTube) {
-    const playerState = window.ytPlayer.getPlayerState ? window.ytPlayer.getPlayerState() : undefined;
+    const playerState = ytFunctionsAvailable && window.ytPlayer.getPlayerState
+      ? window.ytPlayer.getPlayerState()
+      : undefined;
     const ytStates = (typeof YT !== 'undefined' && YT.PlayerState) ? YT.PlayerState : null;
     const playingValue = ytStates?.PLAYING ?? 1;
-    isPlaying = playerState === playingValue;
+    if (typeof playerState === 'number') {
+      isPlaying = playerState === playingValue;
+    } else if (playerState && typeof playerState === 'object' && 'label' in playerState) {
+      isPlaying = playerState.label === 'playing';
+    }
 
-    if (typeof window.ytPlayer.getCurrentTime === 'function') {
+    if (ytFunctionsAvailable && typeof window.ytPlayer.getCurrentTime === 'function') {
       current = window.ytPlayer.getCurrentTime();
     }
     if (ytDurationAvailable) {
