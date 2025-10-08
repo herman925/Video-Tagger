@@ -9,6 +9,9 @@ const MEDIA_MODE = {
 
 window.mediaMode = window.mediaMode || MEDIA_MODE.AUDIO; // Default to audio-only until admin enables video
 
+const CONTROL_LOG_DELTA = 0.75;
+let lastAudioControlSnapshot = null;
+
 function getMediaElements() {
   return {
     player: document.getElementById('video-player'),
@@ -124,51 +127,123 @@ function formatMediaTime(seconds) {
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-function updateAudioControls() {
+function updateAudioControls(trigger = 'auto') {
   const { video, audioToggleBtn, audioStatus, audioProgress } = getMediaElements();
-  if (!audioToggleBtn || !audioStatus) return;
+  if (!audioToggleBtn || !audioStatus) {
+    console.warn('[video.js] updateAudioControls missing controls', {
+      trigger,
+      hasToggle: !!audioToggleBtn,
+      hasStatus: !!audioStatus
+    });
+    return;
+  }
 
-  // Detect source: HTML5/Plyr or YouTube (guard function existence)
-  const isYouTube = !!window.ytPlayer
-    && typeof window.ytPlayer.getDuration === 'function'
-    && typeof window.ytPlayer.getCurrentTime === 'function'
-    && typeof window.ytPlayer.getPlayerState === 'function';
+  const sourceType = window.ytPlayer
+    ? 'youtube'
+    : (window.plyrInstance ? 'plyr' : (video ? 'html5' : 'none'));
+
+  const ytStateAvailable = window.ytPlayer
+    && typeof window.ytPlayer.getPlayerState === 'function'
+    && typeof window.ytPlayer.getCurrentTime === 'function';
+  const ytDurationAvailable = window.ytPlayer
+    && typeof window.ytPlayer.getDuration === 'function';
+  const isYouTube = sourceType === 'youtube' && ytStateAvailable;
+
   const hasSource = isYouTube
-    ? typeof window.ytPlayer.getDuration === 'function' && window.ytPlayer.getDuration() > 0
+    ? !!window.ytPlayer // Allow controls even before duration is available
     : !!(video && (video.currentSrc || video.src));
+
   audioToggleBtn.disabled = !hasSource;
 
   if (!hasSource || (!video && !isYouTube)) {
     audioToggleBtn.textContent = 'Play';
     audioToggleBtn.setAttribute('aria-label', 'Play audio');
     audioStatus.textContent = '00:00 / 00:00';
+    if (audioProgress) {
+      if (!audioProgress.dataset.scrubbing) audioProgress.dataset.scrubbing = 'false';
+      audioProgress.value = 0;
+      audioProgress.max = 0;
+    }
+    if (!hasSource && trigger !== 'auto') {
+      console.debug('[video.js] updateAudioControls skipped: no media source', { trigger, sourceType });
+    }
+    lastAudioControlSnapshot = null;
     return;
   }
 
-  const isPlaying = isYouTube
-    ? (window.ytPlayer.getPlayerState() === YT.PlayerState.PLAYING)
-    : (!video.paused && !video.ended);
+  let isPlaying = false;
+  let current = 0;
+  let rawDuration = 0;
+
+  if (isYouTube) {
+    const playerState = window.ytPlayer.getPlayerState ? window.ytPlayer.getPlayerState() : undefined;
+    const ytStates = (typeof YT !== 'undefined' && YT.PlayerState) ? YT.PlayerState : null;
+    const playingValue = ytStates?.PLAYING ?? 1;
+    isPlaying = playerState === playingValue;
+
+    if (typeof window.ytPlayer.getCurrentTime === 'function') {
+      current = window.ytPlayer.getCurrentTime();
+    }
+    if (ytDurationAvailable) {
+      rawDuration = window.ytPlayer.getDuration();
+    }
+  } else if (window.plyrInstance) {
+    isPlaying = !window.plyrInstance.paused;
+    current = Number.isFinite(window.plyrInstance.currentTime)
+      ? window.plyrInstance.currentTime
+      : (video?.currentTime || 0);
+    rawDuration = Number.isFinite(window.plyrInstance.duration)
+      ? window.plyrInstance.duration
+      : (Number.isFinite(video?.duration) ? video.duration : 0);
+  } else if (video) {
+    isPlaying = !video.paused && !video.ended;
+    current = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+    rawDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+  }
+
+  const duration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 0;
+
   audioToggleBtn.textContent = isPlaying ? 'Pause' : 'Play';
   audioToggleBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
 
-  const current = isYouTube
-    ? window.ytPlayer.getCurrentTime()
-    : (video.currentTime || 0);
-  const duration = isYouTube
-    ? window.ytPlayer.getDuration()
-    : (Number.isFinite(video.duration) && video.duration > 0
-        ? video.duration
-        : (window.plyrInstance && Number.isFinite(window.plyrInstance.duration) ? window.plyrInstance.duration : 0));
   audioStatus.textContent = `${formatMediaTime(current)} / ${formatMediaTime(duration || 0)}`;
 
-  // Progress bar sync
   if (audioProgress) {
-    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
-    if (audioProgress.max != safeDuration) audioProgress.max = safeDuration;
-    if (!audioProgress.matches(':active')) {
-      // Only update UI if the user isn't actively dragging
-      audioProgress.value = Math.min(Math.max(current, 0), safeDuration);
+    if (!audioProgress.dataset.scrubbing) {
+      audioProgress.dataset.scrubbing = 'false';
     }
+    const scrubbing = audioProgress.dataset.scrubbing === 'true';
+    const safeDuration = duration > 0 ? duration : 0;
+    if (audioProgress.max != safeDuration) audioProgress.max = safeDuration;
+    if (!scrubbing) {
+      const clamped = safeDuration > 0
+        ? Math.min(Math.max(current, 0), safeDuration)
+        : Math.max(current, 0);
+      audioProgress.value = clamped;
+    }
+  }
+
+  const snapshot = {
+    trigger,
+    sourceType,
+    isPlaying,
+    current,
+    duration,
+    disabled: audioToggleBtn.disabled
+  };
+
+  if (
+    !lastAudioControlSnapshot
+    || lastAudioControlSnapshot.sourceType !== snapshot.sourceType
+    || lastAudioControlSnapshot.isPlaying !== snapshot.isPlaying
+    || lastAudioControlSnapshot.disabled !== snapshot.disabled
+    || Math.abs((lastAudioControlSnapshot.duration || 0) - snapshot.duration) > CONTROL_LOG_DELTA
+    || Math.abs((lastAudioControlSnapshot.current || 0) - snapshot.current) > (isPlaying ? CONTROL_LOG_DELTA * 4 : CONTROL_LOG_DELTA)
+  ) {
+    console.debug('[video.js] controls:update', snapshot);
+    lastAudioControlSnapshot = { ...snapshot };
+  } else {
+    lastAudioControlSnapshot = { ...lastAudioControlSnapshot, ...snapshot };
   }
 }
 
@@ -247,12 +322,22 @@ function createYouTubePlayer(videoId) {
   playerDiv.id = 'youtube-embed'; // The API needs an element ID
   youtubeContainer.appendChild(playerDiv);
 
+  const rawOrigin = (typeof window !== 'undefined' && window.location && typeof window.location.origin === 'string')
+    ? window.location.origin
+    : null;
+  const safeOrigin = rawOrigin && rawOrigin !== 'null' && /^https?:/i.test(rawOrigin) ? rawOrigin : null;
+  console.info('[video.js] createYouTubePlayer requested', { videoId, origin: safeOrigin });
+
   const playerVars = {
     'playsinline': 1,
     'enablejsapi': 1
   };
+  if (safeOrigin) {
+    playerVars.origin = safeOrigin;
+  }
 
   window.ytPlayer = new YT.Player('youtube-embed', {
+    host: 'https://www.youtube.com',
     height: '400', // Adjust as needed
     width: '100%',
     videoId: videoId,
@@ -267,11 +352,16 @@ function createYouTubePlayer(videoId) {
     window.applyMediaMode();
   }
   // Start polling current time while in audio mode (YT doesn't emit timeupdate)
-  if (window._ytTimeInterval) { clearInterval(window._ytTimeInterval); window._ytTimeInterval = null; }
+  if (window._ytTimeInterval) {
+    clearInterval(window._ytTimeInterval);
+    console.debug('[video.js] yt:polling interval cleared');
+    window._ytTimeInterval = null;
+  }
   window._ytTimeInterval = setInterval(() => {
     if (!window.ytPlayer) return;
-    updateAudioControls();
+    updateAudioControls('yt:poll');
   }, 200);
+  console.debug('[video.js] yt:polling interval started', { videoId });
 
   logPlayerLayout(`createYouTubePlayer:${videoId}`);
 }
@@ -296,6 +386,11 @@ function onPlayerReady(event) {
     window.applyMediaMode();
   }
 
+  const ytDuration = event?.target && typeof event.target.getDuration === 'function' ? event.target.getDuration() : null;
+  const ytCurrent = event?.target && typeof event.target.getCurrentTime === 'function' ? event.target.getCurrentTime() : null;
+  console.debug('[video.js] yt:onReady snapshot', { duration: ytDuration, currentTime: ytCurrent });
+  updateAudioControls('yt:onReady');
+
   logPlayerLayout('onPlayerReady');
 }
 
@@ -303,7 +398,19 @@ function onPlayerStateChange(event) {
   // Optional: Handle player state changes (playing, paused, ended, etc.)
   // For example, you might want to update UI elements based on the state.
   // console.log("YouTube Player State:", event.data);
-  updateAudioControls();
+  const stateLabels = {
+    [-1]: 'unstarted',
+    0: 'ended',
+    1: 'playing',
+    2: 'paused',
+    3: 'buffering',
+    5: 'cued'
+  };
+  console.debug('[video.js] yt:stateChange', {
+    state: event?.data,
+    label: stateLabels[event?.data] || 'unknown'
+  });
+  updateAudioControls('yt:stateChange');
 }
 
 
@@ -361,39 +468,62 @@ function initVideo() {
 
   if (audioToggleBtn) {
     audioToggleBtn.addEventListener('click', () => {
+      const playbackSource = window.ytPlayer
+        ? 'youtube'
+        : (window.plyrInstance ? 'plyr' : 'html5');
+      console.debug('[video.js] audioToggleBtn click', { playbackSource });
       // YouTube
       if (window.ytPlayer && window.ytPlayer.getPlayerState) {
         const state = window.ytPlayer.getPlayerState();
-        if (state === YT.PlayerState.PLAYING) window.ytPlayer.pauseVideo();
+        const ytStates = (typeof YT !== 'undefined' && YT.PlayerState) ? YT.PlayerState : null;
+        const playingValue = ytStates?.PLAYING ?? 1;
+        if (state === playingValue) window.ytPlayer.pauseVideo();
         else window.ytPlayer.playVideo();
+        updateAudioControls('toggle:youtube');
         return;
       }
       // Plyr/HTML5
       if (window.plyrInstance && typeof window.plyrInstance.play === 'function') {
         if (window.plyrInstance.paused) window.plyrInstance.play();
         else window.plyrInstance.pause();
+        updateAudioControls('toggle:plyr');
       } else if (video.currentSrc && (video.paused || video.ended)) {
         video.play();
+        updateAudioControls('toggle:video');
       } else if (video.currentSrc) {
         video.pause();
+        updateAudioControls('toggle:video');
       }
     });
 
     if (video) {
-      ['play', 'pause', 'timeupdate', 'loadedmetadata', 'ended', 'emptied'].forEach(eventName => {
-        video.addEventListener(eventName, updateAudioControls);
+      const videoEventHandler = (event) => updateAudioControls(`video:${event.type}`);
+      ['play', 'pause', 'timeupdate', 'loadedmetadata', 'durationchange', 'ended', 'emptied', 'seeking', 'seeked', 'canplay']
+        .forEach(eventName => {
+          video.addEventListener(eventName, videoEventHandler);
       });
     }
 
-    updateAudioControls();
+    updateAudioControls('init:controls');
   }
 
   // Audio progress drag/seek
   if (audioProgress) {
-    let isScrubbing = false;
-    const commitSeek = (val) => {
+    audioProgress.dataset.scrubbing = audioProgress.dataset.scrubbing || 'false';
+
+    const markScrubbing = (state, context) => {
+      const nextState = state ? 'true' : 'false';
+      if (audioProgress.dataset.scrubbing !== nextState) {
+        console.debug('[video.js] seek:scrubState', { state: nextState, context });
+      }
+      audioProgress.dataset.scrubbing = nextState;
+    };
+
+    const commitSeek = (val, reason) => {
       if (!Number.isFinite(val)) return;
-      const target = Math.max(0, Math.min(val, Number(audioProgress.max) || 0));
+      const max = Number(audioProgress.max) || 0;
+      const target = Math.max(0, Math.min(val, max > 0 ? max : val));
+      console.debug('[video.js] seek:commit', { target, max, reason });
       if (window.ytPlayer && typeof window.ytPlayer.seekTo === 'function') {
         window.ytPlayer.seekTo(target, true);
       } else if (window.plyrInstance) {
@@ -401,20 +531,47 @@ function initVideo() {
       } else if (video) {
         video.currentTime = target;
       }
+      updateAudioControls(`seek:${reason || 'commit'}`);
     };
+
     audioProgress.addEventListener('input', () => {
-      isScrubbing = true;
-      // Update status while dragging
+      markScrubbing(true, 'input');
       const val = parseFloat(audioProgress.value);
       const dur = Number(audioProgress.max) || 0;
       const { audioStatus } = getMediaElements();
-      if (audioStatus) audioStatus.textContent = `${formatMediaTime(val)} / ${formatMediaTime(dur)}`;
+      if (audioStatus) {
+        audioStatus.textContent = `${formatMediaTime(val)} / ${formatMediaTime(dur)}`;
+      }
+      console.debug('[video.js] seek:preview', { value: val, max: dur });
     });
+
     audioProgress.addEventListener('change', () => {
-      commitSeek(parseFloat(audioProgress.value));
-      isScrubbing = false;
+      commitSeek(parseFloat(audioProgress.value), 'change');
+      markScrubbing(false, 'change');
     });
-    // If user stops interacting, next timeupdate will take over UI updates
+
+    const cancelScrub = (context) => {
+      if (audioProgress.dataset.scrubbing === 'true') {
+        markScrubbing(false, context);
+        updateAudioControls(`seek:${context}`);
+      }
+    };
+
+    // Pointer and mouse interactions
+    audioProgress.addEventListener('pointerdown', () => markScrubbing(true, 'pointerdown'));
+    audioProgress.addEventListener('pointerup', () => cancelScrub('pointerup'));
+    audioProgress.addEventListener('pointercancel', () => cancelScrub('pointercancel'));
+    audioProgress.addEventListener('mousedown', () => markScrubbing(true, 'mousedown'));
+    window.addEventListener('mouseup', () => cancelScrub('mouseup'));
+
+    // Touch interactions
+    audioProgress.addEventListener('touchstart', () => markScrubbing(true, 'touchstart'), { passive: true });
+    audioProgress.addEventListener('touchend', () => cancelScrub('touchend'));
+    audioProgress.addEventListener('touchcancel', () => cancelScrub('touchcancel'));
+
+    // Accessibility / keyboard interactions
+    audioProgress.addEventListener('blur', () => cancelScrub('blur'));
+    audioProgress.addEventListener('mouseleave', () => cancelScrub('mouseleave'));
   }
 
   // Local video loading
@@ -424,7 +581,17 @@ function initVideo() {
   });
   localVideoInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      console.debug('[video.js] Local file selection cleared.');
+      return;
+    }
+
+    console.info('[video.js] Local file selected', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
 
     if (typeof CustomEvent === 'function') {
       document.dispatchEvent(new CustomEvent('video-tagger:clear-session-request', { detail: { reason: 'local-load' } }));
@@ -472,9 +639,11 @@ function initVideo() {
       video.src = url;
     }
     video.load(); // Important: load the new source
-    console.log('[video.js] Local video source set and load() called.');
+    console.info('[video.js] Local video source set and load() called.', {
+      objectUrl: sourceEl ? sourceEl.src : video.currentSrc
+    });
 
-    updateAudioControls();
+    updateAudioControls('localLoad:sourceAssigned');
     logPlayerLayout('localLoad:sourceAssigned');
 
     // Initialize Plyr on the video element AFTER it's loaded
@@ -489,10 +658,32 @@ function initVideo() {
                     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'] // Uncommented controls
                 });
                 console.log('[video.js] Plyr initialized successfully:', window.plyrInstance);
+                const plyrEvents = ['ready', 'play', 'pause', 'timeupdate', 'seeking', 'seeked', 'ended', 'loadedmetadata', 'durationchange', 'error'];
+                const logPlyrEvent = (event) => {
+                    const details = {
+                      type: event?.type,
+                      currentTime: Number.isFinite(window.plyrInstance?.currentTime) ? window.plyrInstance.currentTime : null,
+                      duration: Number.isFinite(window.plyrInstance?.duration) ? window.plyrInstance.duration : null
+                    };
+                    if (event?.type === 'error') {
+                      console.error('[video.js] plyr:event', details);
+                    } else {
+                      console.debug('[video.js] plyr:event', details);
+                    }
+                    updateAudioControls(`plyr:${event?.type || 'event'}`);
+                };
+                plyrEvents.forEach(evtName => {
+                  try {
+                    window.plyrInstance.on(evtName, logPlyrEvent);
+                  } catch (err) {
+                    console.warn('[video.js] Failed to attach Plyr listener', { evtName, err });
+                  }
+                });
                 // Ensure Plyr controls are visible after initialization
                 console.log('[video.js] Calling showPlayer() after Plyr initialization.');
                 showPlayer();
                 logPlayerLayout('localLoad:plyrReady');
+                updateAudioControls('plyr:initialized');
             } catch (error) {
                 console.error('[video.js] Error initializing Plyr:', error);
             }
@@ -507,6 +698,7 @@ function initVideo() {
     if (window.showApp) window.showApp();
     else showPlayer(); // Fallback
     logPlayerLayout('localLoad:showAppTriggered');
+    updateAudioControls('localLoad:showPlayer');
 
     noVideoMsg.style.display = 'none';
     window.currentVideoSource = file.name;
@@ -528,6 +720,7 @@ function initVideo() {
       alert('Please enter a YouTube URL.');
       return;
     }
+    console.info('[video.js] YouTube load requested', { url: ytUrl });
     // Extract YouTube video ID
     const match = ytUrl.match(/(?:v=|youtu.be\/|embed\/)([\w-]{11})/);
     const videoId = match ? match[1] : null;
@@ -570,7 +763,7 @@ function initVideo() {
     window.currentVideoSource = ytUrl; // Store YT URL as source
     noVideoMsg.style.display = 'none';
 
-    updateAudioControls();
+    updateAudioControls('youtube:load:init');
 
     logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
     // Force video mode so iframe is visible
@@ -625,18 +818,24 @@ function initVideo() {
 
     if (isNaN(time) || time < 0) return;
 
+    const targetSource = window.ytPlayer ? 'youtube' : (window.plyrInstance ? 'plyr' : 'video');
+    console.debug('[video.js] jumpToTime', { input: inputVal, seconds: time, targetSource });
+
     if (window.ytPlayer) {
       // Use YouTube API
       window.ytPlayer.seekTo(time, true); // true allows seeking ahead
       // Focus might need adjustment for iframe
+      updateAudioControls('jumpToTime:youtube');
     } else if (window.plyrInstance) {
       // Use Plyr API
       window.plyrInstance.currentTime = time;
       window.plyrInstance.play(); // Ensure video plays if it was paused
+      updateAudioControls('jumpToTime:plyr');
     } else if (video.duration && time <= video.duration) {
       // Use HTML5 video API
       video.currentTime = time;
       video.focus();
+      updateAudioControls('jumpToTime:video');
     }
   }
 
