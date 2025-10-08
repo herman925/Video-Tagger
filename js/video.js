@@ -23,13 +23,18 @@ function getMediaElements() {
     video: document.getElementById('video'),
     audioToggleBtn: document.getElementById('audio-toggle-btn'),
     audioStatus: document.getElementById('audio-status'),
-    audioProgress: document.getElementById('audio-progress')
+    audioProgress: document.getElementById('audio-progress'),
+    timeline: document.getElementById('timeline')
   };
 }
 
 // Collect layout-related details for console logging without crashing on missing nodes.
-function describeElementForLog(element) {
+function describeElementForLog(element, options = {}, depth = 0) {
   if (!element) return null;
+  const {
+    includeChildren = false,
+    maxDepth = 1
+  } = options;
   try {
     const rect = element.getBoundingClientRect ? element.getBoundingClientRect() : null;
     const computed = window.getComputedStyle ? window.getComputedStyle(element) : null;
@@ -48,7 +53,10 @@ function describeElementForLog(element) {
           opacity: computed.opacity,
           pointerEvents: computed.pointerEvents,
           position: computed.position,
-          zIndex: computed.zIndex
+          zIndex: computed.zIndex,
+          overflow: computed.overflow,
+          height: computed.height,
+          width: computed.width
         }
       : null;
     const parents = [];
@@ -59,7 +67,7 @@ function describeElementForLog(element) {
       parents.push(`${id}${className}`);
       current = current.parentElement;
     }
-    return {
+    const summary = {
       tag: element.tagName?.toLowerCase() || '',
       id: element.id || null,
       classes: element.className || '',
@@ -82,36 +90,284 @@ function describeElementForLog(element) {
           const childClasses = child.className ? `.${String(child.className).trim().replace(/\s+/g, '.')}` : '';
           return `${childId}${childClasses}`;
         }),
-      ancestorChain: parents
+      ancestorChain: parents,
+      scroll: {
+        top: element.scrollTop || 0,
+        left: element.scrollLeft || 0,
+        width: element.scrollWidth || 0,
+        height: element.scrollHeight || 0
+      }
     };
+    if (element.getAttributeNames) {
+      const attrs = element.getAttributeNames();
+      if (attrs?.length) {
+        summary.attributes = {};
+        attrs.forEach(name => {
+          summary.attributes[name] = element.getAttribute(name);
+        });
+      }
+    }
+    if (element.dataset && Object.keys(element.dataset).length) {
+      summary.dataset = { ...element.dataset };
+    }
+    if (typeof element.textContent === 'string') {
+      const text = element.textContent.trim();
+      if (text) {
+        summary.textPreview = text.length > 160 ? `${text.slice(0, 157)}…` : text;
+        summary.textLength = text.length;
+      }
+    }
+    if (includeChildren && element.children?.length && depth < maxDepth) {
+      summary.children = Array.from(element.children).map(child =>
+        describeElementForLog(child, { includeChildren: true, maxDepth }, depth + 1)
+      );
+    }
+    return summary;
   } catch (err) {
     return { error: err?.message || String(err) };
   }
+}
+
+function snapshotDataset(dataset) {
+  if (!dataset) return undefined;
+  return { ...dataset };
+}
+
+function serializeTimeRanges(ranges) {
+  if (!ranges || typeof ranges.length !== 'number') return [];
+  const result = [];
+  for (let i = 0; i < ranges.length; i += 1) {
+    try {
+      result.push({
+        start: Number(ranges.start(i).toFixed(3)),
+        end: Number(ranges.end(i).toFixed(3))
+      });
+    } catch (err) {
+      result.push({ error: err?.message || String(err), index: i });
+    }
+  }
+  return result;
+}
+
+function collectAudioControlDiagnostics(elements) {
+  const { audioToggleBtn, audioStatus, audioProgress, audioControlBar } = elements;
+  if (!audioToggleBtn && !audioStatus && !audioProgress && !audioControlBar) return null;
+  return {
+    toggleButton: audioToggleBtn
+      ? {
+          text: audioToggleBtn.textContent?.trim() || '',
+          disabled: audioToggleBtn.disabled,
+          ariaLabel: audioToggleBtn.getAttribute('aria-label'),
+          title: audioToggleBtn.getAttribute('title'),
+          dataset: snapshotDataset(audioToggleBtn.dataset),
+          element: describeElementForLog(audioToggleBtn)
+        }
+      : null,
+    status: audioStatus
+      ? {
+          text: audioStatus.textContent || '',
+          ariaLive: audioStatus.getAttribute('aria-live'),
+          element: describeElementForLog(audioStatus)
+        }
+      : null,
+    progress: audioProgress
+      ? {
+          value: Number.parseFloat(audioProgress.value),
+          max: Number.parseFloat(audioProgress.max),
+          min: Number.parseFloat(audioProgress.min),
+          step: audioProgress.step || null,
+          scrubbing: audioProgress.dataset?.scrubbing || null,
+          active: audioProgress.matches ? audioProgress.matches(':active') : undefined,
+          dataset: snapshotDataset(audioProgress.dataset),
+          element: describeElementForLog(audioProgress)
+        }
+      : null,
+    controlBar: audioControlBar ? describeElementForLog(audioControlBar, { includeChildren: true, maxDepth: 2 }) : null
+  };
+}
+
+function collectHtml5VideoDiagnostics(elements) {
+  const video = elements.video;
+  if (!video) return null;
+  const diagnostics = {
+    summary: {
+      currentSrc: video.currentSrc || null,
+      preload: video.preload || null,
+      crossOrigin: video.crossOrigin || null,
+      readyState: video.readyState,
+      networkState: video.networkState
+    },
+    playback: {
+      paused: video.paused,
+      ended: video.ended,
+      seeking: video.seeking,
+      currentTime: Number.isFinite(video.currentTime) ? Number(video.currentTime.toFixed(3)) : null,
+      duration: Number.isFinite(video.duration) ? Number(video.duration.toFixed(3)) : null,
+      playbackRate: video.playbackRate,
+      defaultPlaybackRate: video.defaultPlaybackRate
+    },
+    buffering: {
+      buffered: serializeTimeRanges(video.buffered),
+      seekable: serializeTimeRanges(video.seekable),
+      played: serializeTimeRanges(video.played)
+    },
+    audio: {
+      volume: video.volume,
+      muted: video.muted,
+      defaultMuted: video.defaultMuted,
+      audioTracks: video.audioTracks ? video.audioTracks.length : undefined
+    },
+    textTracks: video.textTracks ? Array.from(video.textTracks).map(track => ({
+      kind: track.kind,
+      label: track.label,
+      language: track.language,
+      mode: track.mode,
+      cues: track.cues ? track.cues.length : undefined
+    })) : undefined,
+    element: describeElementForLog(video, { includeChildren: true, maxDepth: 1 }),
+    wrapper: describeElementForLog(elements.html5Wrapper, { includeChildren: true, maxDepth: 2 })
+  };
+  return diagnostics;
+}
+
+const YOUTUBE_STATE_LABEL = {
+  [-1]: 'unstarted',
+  0: 'ended',
+  1: 'playing',
+  2: 'paused',
+  3: 'buffering',
+  5: 'cued'
+};
+
+function safeYouTubeCall(player, method, ...args) {
+  if (!player || typeof player[method] !== 'function') return null;
+  try {
+    return player[method](...args);
+  } catch (err) {
+    return { error: err?.message || String(err) };
+  }
+}
+
+function collectYouTubeDiagnostics(elements) {
+  const container = elements.youtubeContainer;
+  const iframe = container?.querySelector('iframe') || null;
+  const player = window.ytPlayer || null;
+  if (!container && !player) return null;
+  const diag = {
+    hasPlayerInstance: !!player,
+    container: describeElementForLog(container, { includeChildren: true, maxDepth: 2 }),
+    iframe: describeElementForLog(iframe, { includeChildren: true, maxDepth: 1 }),
+    pollingIntervalActive: !!window._ytTimeInterval,
+    pendingLoad: window.pendingYouTubeLoad || null
+  };
+  if (player) {
+    const rawState = safeYouTubeCall(player, 'getPlayerState');
+    const currentTime = safeYouTubeCall(player, 'getCurrentTime');
+    const duration = safeYouTubeCall(player, 'getDuration');
+    diag.player = {
+      state: {
+        raw: rawState,
+        label: typeof rawState === 'number' ? (YOUTUBE_STATE_LABEL[rawState] || 'unknown') : rawState
+      },
+      playback: {
+        currentTime: typeof currentTime === 'number' ? Number(currentTime.toFixed(3)) : currentTime,
+        duration: typeof duration === 'number' ? Number(duration.toFixed(3)) : duration,
+        loadedFraction: safeYouTubeCall(player, 'getVideoLoadedFraction'),
+        playbackRate: safeYouTubeCall(player, 'getPlaybackRate'),
+        availablePlaybackRates: safeYouTubeCall(player, 'getAvailablePlaybackRates'),
+        quality: safeYouTubeCall(player, 'getPlaybackQuality'),
+        availableQualityLevels: safeYouTubeCall(player, 'getAvailableQualityLevels')
+      },
+      volume: {
+        muted: safeYouTubeCall(player, 'isMuted'),
+        volume: safeYouTubeCall(player, 'getVolume')
+      },
+      video: {
+        data: safeYouTubeCall(player, 'getVideoData'),
+        url: safeYouTubeCall(player, 'getVideoUrl'),
+        embedCode: safeYouTubeCall(player, 'getVideoEmbedCode'),
+        playlist: safeYouTubeCall(player, 'getPlaylist'),
+        playlistIndex: safeYouTubeCall(player, 'getPlaylistIndex')
+      }
+    };
+  }
+  return diag;
+}
+
+function collectPlyrDiagnostics() {
+  const plyr = window.plyrInstance;
+  if (!plyr) return null;
+  const diag = {
+    state: {
+      playing: plyr.playing,
+      paused: plyr.paused,
+      stopped: plyr.stopped,
+      ended: plyr.ended,
+      seeking: plyr.seeking
+    },
+    playback: {
+      currentTime: Number.isFinite(plyr.currentTime) ? Number(plyr.currentTime.toFixed(3)) : null,
+      duration: Number.isFinite(plyr.duration) ? Number(plyr.duration.toFixed(3)) : null,
+      speed: plyr.speed,
+      volume: plyr.volume,
+      muted: plyr.muted,
+      loop: plyr.loop
+    },
+    quality: {
+      current: plyr.quality,
+      options: Array.isArray(plyr.options?.quality?.options) ? [...plyr.options.quality.options] : undefined
+    },
+    fullscreen: {
+      supported: !!plyr.fullscreen,
+      active: plyr.fullscreen?.active ?? null
+    },
+    config: plyr.config || null,
+    elements: {
+      container: describeElementForLog(plyr.elements?.container, { includeChildren: true, maxDepth: 2 }),
+      controls: describeElementForLog(plyr.elements?.controls, { includeChildren: true, maxDepth: 2 })
+    }
+  };
+  return diag;
 }
 
 // Emit a grouped console log showing where the media player elements live on the page.
 function logPlayerLayout(context) {
   try {
     const elements = getMediaElements();
-    const ytIframe = elements.youtubeContainer?.querySelector('iframe') || null;
-    const info = {
+    const summary = {
       context,
       mediaMode: window.mediaMode,
       hasYouTubePlayer: !!window.ytPlayer,
       hasPlyrInstance: !!window.plyrInstance,
-      elements: {
-        player: describeElementForLog(elements.player),
-        html5Wrapper: describeElementForLog(elements.html5Wrapper),
-        video: describeElementForLog(elements.video),
-        youtubeContainer: describeElementForLog(elements.youtubeContainer),
-        youtubeIframe: describeElementForLog(ytIframe),
-        audioControlBar: describeElementForLog(elements.audioControlBar),
-        placeholder: describeElementForLog(elements.placeholder)
-      }
+      pendingYouTubeLoad: window.pendingYouTubeLoad || null,
+      currentVideoSource: window.currentVideoSource || null,
+      ytPolling: !!window._ytTimeInterval,
+      lastAudioControlSnapshot
     };
-    // Group logs to keep console readable
+    const diagnostics = {
+      summary,
+      elements: {
+        player: describeElementForLog(elements.player, { includeChildren: true, maxDepth: 2 }),
+        mediaContent: describeElementForLog(elements.mediaContent, { includeChildren: true, maxDepth: 2 }),
+        placeholder: describeElementForLog(elements.placeholder),
+        audioControlBar: describeElementForLog(elements.audioControlBar, { includeChildren: true, maxDepth: 2 }),
+        html5Wrapper: describeElementForLog(elements.html5Wrapper, { includeChildren: true, maxDepth: 2 }),
+        youtubeContainer: describeElementForLog(elements.youtubeContainer, { includeChildren: true, maxDepth: 2 }),
+        timeline: describeElementForLog(elements.timeline, { includeChildren: true, maxDepth: 1 })
+      },
+      audioControls: collectAudioControlDiagnostics(elements),
+      youtube: collectYouTubeDiagnostics(elements),
+      html5Video: collectHtml5VideoDiagnostics(elements),
+      plyr: collectPlyrDiagnostics()
+    };
     if (console.groupCollapsed) console.groupCollapsed(`[video.js] layout @ ${context}`);
-    console.info('[video.js] layout snapshot', info);
+    console.info('[video.js] layout summary', summary);
+    console.info('[video.js] player elements', diagnostics.elements);
+    if (diagnostics.audioControls) console.info('[video.js] audio controls detail', diagnostics.audioControls);
+    if (diagnostics.youtube) console.info('[video.js] youtube diagnostics', diagnostics.youtube);
+    if (diagnostics.html5Video) console.info('[video.js] html5 video diagnostics', diagnostics.html5Video);
+    if (diagnostics.plyr) console.info('[video.js] plyr diagnostics', diagnostics.plyr);
+    console.info('[video.js] layout detail dump', diagnostics);
     if (console.groupEnd) console.groupEnd();
   } catch (err) {
     console.warn('[video.js] Failed to log player layout', err);
@@ -258,12 +514,10 @@ window.applyMediaMode = function applyMediaMode() {
 
   if (placeholder) {
     placeholder.setAttribute('aria-hidden', mode === MEDIA_MODE.VIDEO ? 'true' : 'false');
-    if (mode === MEDIA_MODE.AUDIO) {
-      const hasSource = window.ytPlayer || (window.plyrInstance && window.plyrInstance.media?.currentSrc) || document.getElementById('video')?.currentSrc;
-      placeholder.textContent = hasSource ? 'Audio playback active' : 'No Video';
-    } else {
-      placeholder.textContent = 'No Video';
-    }
+    const hasSource = window.ytPlayer
+      || (window.plyrInstance && window.plyrInstance.media?.currentSrc)
+      || document.getElementById('video')?.currentSrc;
+    placeholder.textContent = mode === MEDIA_MODE.AUDIO && hasSource ? 'Audio playback active' : 'No Video';
   }
 
   if (audioControlBar) {
@@ -516,6 +770,7 @@ function initVideo() {
   // Audio progress drag/seek
   if (audioProgress) {
     audioProgress.dataset.scrubbing = audioProgress.dataset.scrubbing || 'false';
+    let suppressChangeCommit = false;
 
     const markScrubbing = (state, context) => {
       const nextState = state ? 'true' : 'false';
@@ -552,9 +807,19 @@ function initVideo() {
     });
 
     audioProgress.addEventListener('change', () => {
-      commitSeek(parseFloat(audioProgress.value), 'change');
-      markScrubbing(false, 'change');
+      if (audioProgress.dataset.scrubbing !== 'true' && !suppressChangeCommit) {
+        commitSeek(parseFloat(audioProgress.value), 'change');
+      }
     });
+
+    const finalizeScrub = (context) => {
+      if (audioProgress.dataset.scrubbing === 'true') {
+        markScrubbing(false, context);
+        suppressChangeCommit = true;
+        commitSeek(parseFloat(audioProgress.value), context);
+        setTimeout(() => { suppressChangeCommit = false; }, 0);
+      }
+    };
 
     const cancelScrub = (context) => {
       if (audioProgress.dataset.scrubbing === 'true') {
@@ -565,14 +830,14 @@ function initVideo() {
 
     // Pointer and mouse interactions
     audioProgress.addEventListener('pointerdown', () => markScrubbing(true, 'pointerdown'));
-    audioProgress.addEventListener('pointerup', () => cancelScrub('pointerup'));
+    audioProgress.addEventListener('pointerup', () => finalizeScrub('pointerup'));
     audioProgress.addEventListener('pointercancel', () => cancelScrub('pointercancel'));
     audioProgress.addEventListener('mousedown', () => markScrubbing(true, 'mousedown'));
-    window.addEventListener('mouseup', () => cancelScrub('mouseup'));
+    audioProgress.addEventListener('mouseup', () => finalizeScrub('mouseup'));
 
     // Touch interactions
     audioProgress.addEventListener('touchstart', () => markScrubbing(true, 'touchstart'), { passive: true });
-    audioProgress.addEventListener('touchend', () => cancelScrub('touchend'));
+    audioProgress.addEventListener('touchend', () => finalizeScrub('touchend'));
     audioProgress.addEventListener('touchcancel', () => cancelScrub('touchcancel'));
 
     // Accessibility / keyboard interactions
@@ -772,9 +1037,6 @@ function initVideo() {
     updateAudioControls('youtube:load:init');
 
     logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
-    // Respect the current media mode unless user previously selected video
-    const previousMode = window.mediaMode === MEDIA_MODE.VIDEO ? MEDIA_MODE.VIDEO : MEDIA_MODE.AUDIO;
-    window.mediaMode = previousMode;
     if (typeof window.applyMediaMode === 'function') {
       window.applyMediaMode();
     }
