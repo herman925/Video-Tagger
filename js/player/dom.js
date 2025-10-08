@@ -333,6 +333,7 @@
   }
 
   player.getMediaElements = getMediaElements;
+  global.getMediaElements = getMediaElements;
   player.describeElementForLog = describeElementForLog;
   player.logPlayerLayout = logPlayerLayout;
   player.safeYouTubeCall = safeYouTubeCall;
