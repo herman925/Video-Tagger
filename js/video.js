@@ -158,8 +158,7 @@ function createYouTubePlayer(videoId) {
     playerVars: {
       'playsinline': 1,
       'origin': window.location.origin,
-      'enablejsapi': 1,
-      'host': 'https://www.youtube.com'
+      'enablejsapi': 1
     },
     events: {
       'onReady': onPlayerReady,
