@@ -185,16 +185,23 @@
   </div>
   <!-- Move file input outside of video section to prevent Plyr interference -->
   <input type="file" id="local-video-input" accept="video/*" style="display: none;" />
-  <script src="js/utils.js"></script>
-  <script src="js/video.js"></script>
-  <script src="js/tag.js"></script>
-  <script src="js/tagsummary.js"></script>
-  <script src="js/export.js"></script>
-  <script src="js/save.js"></script>
-  <script src="js/load.js"></script>
-  <script src="js/shortcut.js"></script>
-  <script src="js/shortcut_help.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/core/namespace.js"></script>
+  <script src="js/player/state.js"></script>
+  <script src="js/player/dom.js"></script>
+  <script src="js/player/audioControls.js"></script>
+  <script src="js/player/timeline.js"></script>
+  <script src="js/player/youtubeAdapter.js"></script>
+  <script src="js/player/youtubeController.js"></script>
+  <script src="js/player/controller.js"></script>
+  <script src="js/core/utils.js"></script>
+  <script src="js/tagging/tag.js"></script>
+  <script src="js/tagging/tagsummary.js"></script>
+  <script src="js/tagging/export.js"></script>
+  <script src="js/tagging/save.js"></script>
+  <script src="js/tagging/load.js"></script>
+  <script src="js/core/shortcut.js"></script>
+  <script src="js/core/shortcut_help.js"></script>
+  <script src="js/core/main.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Hide hero and show app when video is loaded

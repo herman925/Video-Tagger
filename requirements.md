@@ -119,7 +119,7 @@ A browser-based interval tagging tool for timestamp coding, tag management, and 
 - Local playback uses the HTML5 `<video>` element wrapped with Plyr; when only audio is supplied (or no video track exists), Plyr presents an audio player with a "No Video" placeholder panel unless the admin toggle forces video mode.
 - YouTube playback uses the YouTube IFrame API and shares the same tagging/timeline flows.
 - `window.showApp()` transitions UI sections once a video source is ready.
-- `_timelineTags` stores interval data shared across modules (`tag.js`, `video.js`, `tagsummary.js`).
+- `_timelineTags` stores interval data shared across modules (`tag.js`, `player/controller.js`, `tagsummary.js`).
 - All time navigation and tagging is millisecond-accurate across local and YouTube players.
 - Modern Chromium-based browsers are primary targets; fallback to native video methods when Plyr is unavailable.
 - Export CSV columns (ordered): `Video Source`, `VID`, `Start (s)`, `End (s)`, `Start (HH:MM:SS.mmm)`, `End (HH:MM:SS.mmm)`, `Tag`, `Language`, `Remarks`. Language cells contain colon-separated selections (e.g., `Cantonese:Mandarin`) or remain blank if none; VID must be populated or export is blocked.
