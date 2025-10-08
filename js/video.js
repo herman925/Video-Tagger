@@ -12,6 +12,94 @@ window.mediaMode = window.mediaMode || MEDIA_MODE.AUDIO; // Default to audio-onl
 const CONTROL_LOG_DELTA = 0.75;
 let lastAudioControlSnapshot = null;
 
+const YT_PLAYER_STATE = {
+  UNSTARTED: -1,
+  ENDED: 0,
+  PLAYING: 1,
+  PAUSED: 2,
+  BUFFERING: 3,
+  CUED: 5
+};
+
+class PlyrYouTubeAdapter {
+  constructor(plyrInstance) {
+    this.plyr = plyrInstance || null;
+    this.state = YT_PLAYER_STATE.UNSTARTED;
+  }
+
+  setState(newState) {
+    this.state = newState;
+  }
+
+  getPlayerState() {
+    return this.state;
+  }
+
+  playVideo() {
+    try {
+      this.plyr?.play();
+    } catch (err) {
+      console.warn('[video.js] Plyr adapter failed to play', err);
+    }
+  }
+
+  pauseVideo() {
+    try {
+      this.plyr?.pause();
+    } catch (err) {
+      console.warn('[video.js] Plyr adapter failed to pause', err);
+    }
+  }
+
+  stopVideo() {
+    try {
+      this.plyr?.stop();
+    } catch (err) {
+      console.warn('[video.js] Plyr adapter failed to stop', err);
+    }
+  }
+
+  seekTo(seconds, allowSeekAhead = true) { // eslint-disable-line no-unused-vars
+    if (!this.plyr) return;
+    try {
+      this.plyr.currentTime = Number.isFinite(seconds) ? seconds : 0;
+    } catch (err) {
+      console.warn('[video.js] Plyr adapter failed to seek', { seconds, err });
+    }
+  }
+
+  getCurrentTime() {
+    const cur = this.plyr?.currentTime;
+    return Number.isFinite(cur) ? cur : 0;
+  }
+
+  getDuration() {
+    const duration = this.plyr?.duration;
+    return Number.isFinite(duration) ? duration : 0;
+  }
+
+  destroy() {
+    if (this.plyr) {
+      try {
+        this.plyr.destroy();
+      } catch (err) {
+        console.warn('[video.js] Plyr adapter failed to destroy Plyr instance', err);
+      }
+    }
+    this.plyr = null;
+    this.state = YT_PLAYER_STATE.UNSTARTED;
+  }
+}
+
+function ensureYouTubePlayerStateConstants() {
+  if (typeof window !== 'undefined') {
+    window.YT = window.YT || {};
+    window.YT.PlayerState = window.YT.PlayerState || { ...YT_PLAYER_STATE };
+  }
+}
+
+ensureYouTubePlayerStateConstants();
+
 function getMediaElements() {
   return {
     player: document.getElementById('video-player'),
@@ -588,18 +676,15 @@ window.applyMediaMode = function applyMediaMode() {
 };
 
 function onYouTubeIframeAPIReady() {
-  if (window.pendingYouTubeLoad) {
-    console.info('[video.js] onYouTubeIframeAPIReady called with pending ID', window.pendingYouTubeLoad);
-    createYouTubePlayer(window.pendingYouTubeLoad);
-    window.pendingYouTubeLoad = null;
-  }
+  console.info('[video.js] onYouTubeIframeAPIReady called, but Plyr handles YouTube embedding directly.');
 }
 
 function createYouTubePlayer(videoId) {
   const { youtubeContainer, html5Wrapper, video } = getMediaElements();
   if (!youtubeContainer) return;
 
-  // Remove previous embed if any
+  window.pendingYouTubeLoad = null;
+
   youtubeContainer.innerHTML = '';
   youtubeContainer.hidden = false;
 
@@ -608,38 +693,123 @@ function createYouTubePlayer(videoId) {
   }
 
   if (video) {
-    video.pause();
+    try {
+      video.pause();
+    } catch (err) {
+      console.warn('[video.js] Failed to pause HTML5 video before loading YouTube', err);
+    }
+  }
+
+  if (window.plyrInstance) {
+    try {
+      window.plyrInstance.destroy();
+    } catch (err) {
+      console.warn('[video.js] Failed to destroy existing Plyr instance before creating YouTube player', err);
+    }
+    window.plyrInstance = null;
+  }
+
+  if (window.ytPlayer) {
+    try {
+      window.ytPlayer.destroy();
+    } catch (err) {
+      console.warn('[video.js] Failed to destroy existing YouTube adapter before creating new one', err);
+    }
+    window.ytPlayer = null;
   }
 
   const playerDiv = document.createElement('div');
-  playerDiv.id = 'youtube-embed'; // The API needs an element ID
+  playerDiv.id = 'youtube-embed';
+  playerDiv.className = 'plyr__video-embed';
+  playerDiv.dataset.plyrProvider = 'youtube';
+  playerDiv.dataset.plyrEmbedId = videoId;
   youtubeContainer.appendChild(playerDiv);
 
-  const rawOrigin = (typeof window !== 'undefined' && window.location && typeof window.location.origin === 'string')
-    ? window.location.origin
-    : null;
-  const safeOrigin = rawOrigin && rawOrigin !== 'null' && /^https?:/i.test(rawOrigin) ? rawOrigin : null;
-  console.info('[video.js] createYouTubePlayer requested', { videoId, origin: safeOrigin });
+  console.info('[video.js] createYouTubePlayer requested', { videoId, mode: 'plyr-adapter' });
 
-  const playerVars = {
-    'playsinline': 1,
-    'enablejsapi': 1
+  const plyrOptions = {
+    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
+    youtube: {
+      rel: 0,
+      showinfo: 0,
+      iv_load_policy: 3,
+      modestbranding: 1,
+      playsinline: 1,
+      noCookie: true
+    }
   };
-  if (safeOrigin) {
-    playerVars.origin = safeOrigin;
+
+  try {
+    window.plyrInstance = new Plyr(playerDiv, plyrOptions);
+  } catch (err) {
+    console.error('[video.js] Failed to initialize Plyr for YouTube', err);
+    return;
   }
 
-  window.ytPlayer = new YT.Player('youtube-embed', {
-    host: 'https://www.youtube.com',
-    height: '400', // Adjust as needed
-    width: '100%',
-    videoId: videoId,
-    playerVars: playerVars,
-    events: {
-      'onReady': onPlayerReady,
-      'onStateChange': onPlayerStateChange // Optional: handle state changes
+  const adapter = new PlyrYouTubeAdapter(window.plyrInstance);
+  window.ytPlayer = adapter;
+
+  const emitStateChange = (state) => {
+    adapter.setState(state);
+    if (typeof window.onPlayerStateChange === 'function') {
+      try {
+        window.onPlayerStateChange({ data: state, target: adapter });
+      } catch (err) {
+        console.warn('[video.js] onPlayerStateChange handler threw', err);
+      }
+    }
+  };
+
+  const plyrEvents = ['play', 'pause', 'seeking', 'seeked', 'ended', 'timeupdate', 'ready', 'error'];
+  plyrEvents.forEach(evtName => {
+    try {
+      window.plyrInstance.on(evtName, (event) => {
+        switch (evtName) {
+          case 'ready':
+            emitStateChange(YT_PLAYER_STATE.CUED);
+            if (typeof window.onPlayerReady === 'function') {
+              try {
+                window.onPlayerReady({ target: adapter });
+              } catch (err) {
+                console.warn('[video.js] onPlayerReady handler threw', err);
+              }
+            }
+            break;
+          case 'play':
+            emitStateChange(YT_PLAYER_STATE.PLAYING);
+            break;
+          case 'pause':
+            emitStateChange(YT_PLAYER_STATE.PAUSED);
+            break;
+          case 'seeking':
+            emitStateChange(YT_PLAYER_STATE.BUFFERING);
+            break;
+          case 'seeked':
+            emitStateChange(window.plyrInstance.playing ? YT_PLAYER_STATE.PLAYING : YT_PLAYER_STATE.PAUSED);
+            break;
+          case 'ended':
+            emitStateChange(YT_PLAYER_STATE.ENDED);
+            break;
+          case 'error':
+            console.error('[video.js] Plyr YouTube error', event?.detail || event);
+            break;
+          default:
+            // timeupdate falls through for regular audio control refresh
+            break;
+        }
+        if (evtName !== 'error') {
+          updateAudioControls(`plyr-youtube:${evtName}`);
+        }
+      });
+    } catch (err) {
+      console.warn('[video.js] Failed to bind Plyr event listener for YouTube', { evtName, err });
     }
   });
+
+  if (window._ytTimeInterval) {
+    clearInterval(window._ytTimeInterval);
+    window._ytTimeInterval = null;
+  }
 
   if (typeof window.applyMediaMode === 'function') {
     window.applyMediaMode();
@@ -652,19 +822,8 @@ function createYouTubePlayer(videoId) {
     audioControlBar.style.visibility = 'visible';
     audioControlBar.style.opacity = '1';
   }
-  // Start polling current time while in audio mode (YT doesn't emit timeupdate)
-  if (window._ytTimeInterval) {
-    clearInterval(window._ytTimeInterval);
-    console.debug('[video.js] yt:polling interval cleared');
-    window._ytTimeInterval = null;
-  }
-  window._ytTimeInterval = setInterval(() => {
-    if (!window.ytPlayer) return;
-    updateAudioControls('yt:poll');
-  }, 200);
-  console.debug('[video.js] yt:polling interval started', { videoId });
 
-  logPlayerLayout(`createYouTubePlayer:${videoId}`);
+  logPlayerLayout(`createYouTubePlayer:${videoId}:plyr`);
 }
 
 function onPlayerReady(event) {
@@ -745,10 +904,10 @@ function initVideo() {
     // Hide the native video element if a YT player is active
     // Show it otherwise (Plyr will add controls)
     video.style.display = window.ytPlayer ? 'none' : '';
-    // Ensure Plyr container visibility matches video element
+    // Ensure Plyr UI visibility follows underlying wrappers
     const plyrContainer = videoPlayerContainer.querySelector('.plyr');
     if (plyrContainer) {
-        plyrContainer.style.display = window.ytPlayer ? 'none' : '';
+        plyrContainer.style.display = '';
     }
 
     const { html5Wrapper, youtubeContainer } = getMediaElements();
@@ -1068,10 +1227,6 @@ function initVideo() {
     const { html5Wrapper, youtubeContainer } = getMediaElements();
     if (html5Wrapper) html5Wrapper.hidden = true;
     if (youtubeContainer) youtubeContainer.hidden = false;
-    // Also hide the Plyr container if it exists
-    const plyrContainer = videoPlayerContainer.querySelector('.plyr');
-    if (plyrContainer) plyrContainer.style.display = 'none';
-
     window.currentVideoSource = ytUrl; // Store YT URL as source
     noVideoMsg.style.display = 'none';
 
@@ -1092,14 +1247,7 @@ function initVideo() {
     // Ensure the app section is shown even before YT ready
     if (window.showApp) window.showApp();
 
-    // Check if YT API is ready
-    if (typeof YT !== 'undefined' && YT.Player) {
-      createYouTubePlayer(videoId);
-    } else {
-      // API not ready yet, store videoId to load when it is
-      window.pendingYouTubeLoad = videoId;
-      // The onYouTubeIframeAPIReady function will handle creation
-    }
+    createYouTubePlayer(videoId);
 
     // Reset buttons (they will be enabled in onPlayerReady)
     const startTagBtn = document.getElementById('start-tag-btn');
