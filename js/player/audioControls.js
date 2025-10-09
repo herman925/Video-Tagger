@@ -16,13 +16,64 @@
     return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
 
+  function getActiveMediaApi(videoElement) {
+    if (global.ytPlayer && typeof global.ytPlayer.getDuration === 'function') {
+      return {
+        type: 'youtube',
+        getDuration: () => Number(global.ytPlayer.getDuration?.()) || 0,
+        getCurrentTime: () => Number(global.ytPlayer.getCurrentTime?.()) || 0,
+        play: () => global.ytPlayer.playVideo?.(),
+        pause: () => global.ytPlayer.pauseVideo?.(),
+        seek: (seconds) => global.ytPlayer.seekTo?.(seconds, true),
+        getVolume: () => {
+          const vol = global.ytPlayer.getVolume?.();
+          return Number.isFinite(vol) ? vol : 100;
+        },
+        setVolume: (value) => global.ytPlayer.setVolume?.(Math.max(0, Math.min(100, value))),
+        isPlaying: () => {
+          if (!global.YT || !global.YT.PlayerState) return false;
+          return global.ytPlayer.getPlayerState?.() === global.YT.PlayerState.PLAYING;
+        }
+      };
+    }
+    if (global.plyrInstance) {
+      return {
+        type: 'plyr',
+        getDuration: () => Number(global.plyrInstance.duration) || 0,
+        getCurrentTime: () => Number(global.plyrInstance.currentTime) || 0,
+        play: () => global.plyrInstance.play(),
+        pause: () => global.plyrInstance.pause(),
+        seek: (seconds) => { global.plyrInstance.currentTime = seconds; },
+        getVolume: () => Number.isFinite(global.plyrInstance.volume) ? global.plyrInstance.volume * 100 : 100,
+        setVolume: (value) => { global.plyrInstance.volume = Math.max(0, Math.min(100, value)) / 100; },
+        isPlaying: () => !global.plyrInstance.paused
+      };
+    }
+    if (videoElement && videoElement.readyState >= 1) {
+      return {
+        type: 'html5',
+        getDuration: () => Number(videoElement.duration) || 0,
+        getCurrentTime: () => Number(videoElement.currentTime) || 0,
+        play: () => videoElement.play(),
+        pause: () => videoElement.pause(),
+        seek: (seconds) => { videoElement.currentTime = seconds; },
+        getVolume: () => Number.isFinite(videoElement.volume) ? videoElement.volume * 100 : 100,
+        setVolume: (value) => { videoElement.volume = Math.max(0, Math.min(100, value)) / 100; },
+        isPlaying: () => !videoElement.paused
+      };
+    }
+    return null;
+  }
+
   function updateAudioControls(trigger = 'auto') {
     const {
       video,
       audioToggleBtn,
       audioStatus,
       audioProgress,
-      audioControlBar
+      audioControlBar,
+      audioVolume,
+      audioBanner
     } = player.getMediaElements();
     if (!audioToggleBtn || !audioStatus) {
       console.warn('[video.js] updateAudioControls missing controls', {
@@ -38,6 +89,9 @@
       audioControlBar.style.visibility = 'visible';
       audioControlBar.style.opacity = '1';
       audioControlBar.style.display = 'flex';
+    }
+    if (audioBanner) {
+      audioBanner.style.display = global.mediaMode === MEDIA_MODE.AUDIO ? 'flex' : 'none';
     }
 
     const sourceType = global.ytPlayer
@@ -57,8 +111,15 @@
       : !!(video && (video.currentSrc || video.src));
 
     audioToggleBtn.disabled = !hasSource;
+    if (audioVolume) {
+      if (!hasSource) {
+        audioVolume.disabled = true;
+        audioVolume.value = 100;
+      }
+    }
 
     if (!hasSource || (!video && !isYouTube)) {
+      const awaitingYouTube = (typeof document !== 'undefined' && document.body?.classList?.contains('youtube-mode')) || !!global.pendingYouTubeLoad;
       const details = {
         trigger,
         sourceType,
@@ -67,18 +128,28 @@
         html5HasVideo: !!video,
         html5CurrentSrc: video?.currentSrc || null,
         plyrActive: !!global.plyrInstance,
-        note: 'Audio controls disabled because no playable media source is available.'
+        note: awaitingYouTube
+          ? 'Audio controls waiting for YouTube player to finish initialising.'
+          : 'Audio controls disabled because no playable media source is available.'
       };
       audioToggleBtn.textContent = 'Play';
       audioToggleBtn.setAttribute('aria-label', 'Play audio');
-      audioStatus.textContent = '00:00 / 00:00';
+      audioStatus.textContent = awaitingYouTube ? 'Loading…' : '00:00 / 00:00';
       if (audioProgress) {
         if (!audioProgress.dataset.scrubbing) audioProgress.dataset.scrubbing = 'false';
         audioProgress.value = 0;
         audioProgress.max = 0;
       }
+      if (audioVolume) {
+        audioVolume.disabled = true;
+        audioVolume.value = 100;
+      }
       if (!hasSource) {
-        console.debug('[video.js] updateAudioControls skipped: no media source', details);
+        if (awaitingYouTube) {
+          console.info('[video.js] updateAudioControls awaiting YouTube source', details);
+        } else {
+          console.debug('[video.js] updateAudioControls skipped: no media source', details);
+        }
         if (trigger !== 'auto') {
           player.logPlayerLayout(`updateAudioControls:noSource:${trigger}`);
         }
@@ -145,6 +216,17 @@
       }
     }
 
+    if (audioVolume) {
+      const api = getActiveMediaApi(video);
+      if (api && typeof api.getVolume === 'function') {
+        audioVolume.disabled = false;
+        audioVolume.value = Math.round(api.getVolume());
+      } else {
+        audioVolume.disabled = true;
+        audioVolume.value = 100;
+      }
+    }
+
     const snapshot = {
       trigger,
       sourceType,
@@ -170,7 +252,7 @@
   }
 
   function applyMediaMode() {
-    const { player: playerRoot, placeholder, youtubeContainer, audioControlBar } = player.getMediaElements();
+    const { player: playerRoot, placeholder, youtubeContainer, audioControlBar, audioBanner, audioVolume } = player.getMediaElements();
     if (!playerRoot) return;
     const mode = global.mediaMode === MEDIA_MODE.VIDEO ? MEDIA_MODE.VIDEO : MEDIA_MODE.AUDIO;
     playerRoot.classList.remove('audio-mode', 'video-mode');
@@ -193,38 +275,53 @@
         audioControlBar.style.opacity = '1';
       }
     }
+    if (audioBanner) {
+      audioBanner.style.display = mode === MEDIA_MODE.AUDIO ? 'flex' : 'none';
+    }
+    if (audioVolume && mode !== MEDIA_MODE.AUDIO) {
+      audioVolume.disabled = true;
+    }
 
     if (global.plyrInstance && global.plyrInstance.elements?.container) {
       global.plyrInstance.elements.container.classList.toggle('plyr--audio-mode', mode === MEDIA_MODE.AUDIO);
     }
 
-    if (youtubeContainer && global.ytPlayer) {
-      if (mode === MEDIA_MODE.AUDIO) {
-        youtubeContainer.style.opacity = '0';
-        youtubeContainer.style.pointerEvents = 'none';
-        youtubeContainer.style.height = '0';
-        youtubeContainer.style.display = '';
-      } else {
-        youtubeContainer.style.opacity = '';
-        youtubeContainer.style.pointerEvents = '';
-        youtubeContainer.style.height = '';
-        youtubeContainer.style.display = '';
-      }
-    } else if (youtubeContainer) {
+  if (youtubeContainer && global.ytPlayer) {
+    if (mode === MEDIA_MODE.AUDIO) {
+      youtubeContainer.style.opacity = '0.001';
+      youtubeContainer.style.pointerEvents = 'none';
+      youtubeContainer.style.height = '';
+      youtubeContainer.style.display = '';
+    } else {
       youtubeContainer.style.opacity = '';
       youtubeContainer.style.pointerEvents = '';
       youtubeContainer.style.height = '';
       youtubeContainer.style.display = '';
     }
+  } else if (youtubeContainer) {
+    youtubeContainer.style.opacity = '';
+    youtubeContainer.style.pointerEvents = '';
+    youtubeContainer.style.height = '';
+    youtubeContainer.style.display = '';
+  }
 
     if (mode === MEDIA_MODE.AUDIO) {
       updateAudioControls();
+    }
+
+    if (typeof global.updateAudioModeToggle === 'function') {
+      try {
+        global.updateAudioModeToggle();
+      } catch (err) {
+        console.debug('[video.js] updateAudioModeToggle failed', err);
+      }
     }
 
     player.logPlayerLayout(`applyMediaMode:${mode}`);
   }
 
   player.formatMediaTime = formatMediaTime;
+  player.getActiveMediaApi = getActiveMediaApi;
   player.updateAudioControls = updateAudioControls;
   player.applyMediaMode = applyMediaMode;
 

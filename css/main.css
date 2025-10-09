@@ -103,37 +103,150 @@ button:hover,
 
 #app-container {
   display: flex;
-  flex-direction: row;
-  height: 90vh; /* Adjust height to leave some margin */
-  max-width: 1280px; /* Widen the container */
-  margin: auto; /* Center container both horizontally and vertically */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 95%; /* Use more of the viewport */
+  align-items: flex-start;
+  gap: 28px;
+  width: min(1320px, 96vw);
+  margin: 48px auto;
+  flex-wrap: wrap;
 }
 #video-section {
-  flex-basis: 60%; /* Use 60% of the container width */
-  flex-grow: 1;
-  flex-shrink: 1;
+  flex: 1 1 520px;
   min-width: 320px;
-  max-width: 70vw;
   background: var(--panel-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
-  padding: 32px 24px 24px 32px;
-  box-shadow: 2px 0 8px var(--panel-shadow); /* Use CSS Variable */
+  gap: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 0 18px var(--panel-shadow); /* Use CSS Variable */
+  border-radius: 18px;
+}
+
+#video-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(420px, 1.45fr) minmax(300px, 1fr);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "player controls"
+    "player controls";
+  column-gap: 32px;
+  row-gap: 28px;
+  align-items: start;
+}
+
+body.sidecar-collapsed #video-layout {
+  grid-template-columns: minmax(420px, 1.45fr) minmax(88px, auto);
+  column-gap: 16px;
+}
+
+#player-column {
+  grid-area: player;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  z-index: 1;
+}
+
+#controls-column {
+  grid-area: controls;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  background: var(--panel-bg);
+  padding: 28px 24px;
+  border-radius: 18px;
+  box-shadow: 0 0 18px var(--panel-shadow);
+  transition: max-width 0.25s ease, padding 0.25s ease;
+}
+
+.controls-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.controls-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls-title {
+  margin: 0;
+}
+
+.controls-toggle {
+  border: 1px solid var(--button-bg);
+  background: transparent;
+  color: var(--button-bg);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.controls-toggle:hover,
+.controls-toggle:focus-visible {
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.mode-toggle {
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.mode-toggle:hover,
+.mode-toggle:focus-visible {
+  color: var(--button-text);
+}
+
+.controls-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+#controls-column.controls-collapsed {
+  max-width: 88px;
+  min-width: 88px;
+  padding: 24px 16px;
+  align-items: center;
+  gap: 12px;
+}
+
+#controls-column.controls-collapsed .controls-column-body {
+  display: none;
+}
+
+#controls-column.controls-collapsed .controls-title {
+  display: none;
+}
+
+#controls-column.controls-collapsed .controls-toggle {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 12px 6px;
+}
+
+#controls-column.controls-collapsed .mode-toggle {
+  display: none;
 }
 
 /* New row for Jump Time and Add Tag controls */
 #controls-tag-row {
   display: flex;
-  justify-content: space-between; /* Puts sections across row */
-  align-items: flex-start; /* Align items to the top */
-  width: 95%; /* Occupy full width of video-section */
-  margin-bottom: 20px; /* Space below the row */
-  gap: 20px; /* Space between sections */
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  margin: 0;
+  gap: 18px; /* Space between sections */
 }
 
 /* Container for Jump controls + title */
@@ -142,11 +255,13 @@ button:hover,
   flex-direction: column;
   align-items: flex-start;
   flex-shrink: 0; /* Prevent container from shrinking */
+  width: 100%;
+  gap: 12px;
 }
 
 #metadata-section {
-  min-width: 180px;
-  max-width: 200px;
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -178,6 +293,7 @@ button:hover,
   flex-direction: column;
   gap: 20px;
   flex: 1;
+  width: 100%;
 }
 
 /* Remove margin from header inside this container */
@@ -309,11 +425,12 @@ button:hover,
 .audio-control-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 12px;
-  padding: 12px 16px;
-  background: var(--panel-bg);
-  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  background: rgba(15, 27, 51, 0.85);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(15, 27, 51, 0.3);
 }
 
 .audio-toggle-btn {
@@ -339,16 +456,38 @@ button:hover,
   display: flex;
 }
 
+#video-player.audio-mode #media-content {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 240px);
+  gap: 24px;
+  align-items: center;
+  padding: 16px 20px;
+  position: relative;
+}
+
 #video-player.audio-mode #media-content video,
+#video-player.audio-mode #media-content .plyr,
 #video-player.audio-mode #media-content .plyr__video-wrapper,
-#video-player.audio-mode #media-content iframe,
 #video-player.audio-mode #media-content .plyr__poster {
   display: none !important;
 }
 
-#video-player.audio-mode #media-content .plyr,
-#video-player.audio-mode #media-content video {
-  display: none !important;
+#video-player.audio-mode #youtube-container {
+  min-height: 0;
+  display: block;
+}
+
+#video-player.audio-mode #youtube-container iframe {
+  width: 100% !important;
+  height: 140px;
+  min-height: 0;
+  border-radius: 14px;
+  box-shadow: 0 16px 32px rgba(15, 27, 51, 0.22);
+  display: block;
+}
+
+#video-player.audio-mode #audio-mode-banner {
+  display: flex;
 }
 
 #video-player.audio-mode .audio-control-bar {
@@ -367,17 +506,119 @@ button:hover,
   display: block !important;
 }
 
+#audio-mode-banner {
+  display: none;
+  position: absolute;
+  inset: 18px 18px 140px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(47,91,211,0.85), rgba(111,134,214,0.75));
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  font-size: 1rem;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+  pointer-events: none;
+}
+
+.audio-control-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  background: rgba(15, 27, 51, 0.85);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(15, 27, 51, 0.3);
+}
+
+#audio-volume {
+  width: 140px;
+  accent-color: #20a86b;
+}
+
+.audio-volume-label {
+  font-size: 0.85rem;
+  color: rgba(229, 237, 255, 0.82);
+  margin-left: 4px;
+}
+
+body.youtube-mode #youtube-container {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 430px;
+  background: rgba(8, 15, 32, 0.85);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(11, 21, 46, 0.35);
+}
+
+body.youtube-mode #youtube-container iframe {
+  width: 100% !important;
+  height: 430px;
+  display: block;
+}
+
+body.youtube-mode .youtube-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 430px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(47, 91, 211, 0.22), rgba(111, 134, 214, 0.18));
+  border: 1px dashed rgba(159, 176, 224, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  margin-bottom: 0;
+}
+
+.youtube-placeholder {
+  display: none;
+  width: 100%;
+  min-height: 240px;
+  border-radius: 14px;
+  background: rgba(12, 21, 45, 0.4);
+  border: 1px dashed rgba(142, 160, 210, 0.55);
+  align-items: center;
+  justify-content: center;
+  color: rgba(226, 235, 255, 0.9);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+body.player-active #video-player {
+  display: block !important;
+  width: 100%;
+}
+
+body.player-active #timeline-container {
+  display: block !important;
+  width: 100%;
+}
+
+body.player-active #controls-tag-row {
+  display: flex !important;
+  align-self: stretch;
+}
+
+body.player-active #video-hero {
+  display: none !important;
+}
+
 #sidebar {
-  flex-basis: 40%; /* Use 40% of the container width */
-  flex-grow: 1;
-  flex-shrink: 1;
-  min-width: 350px;
-  max-width: 600px; /* Maximum width for sidebar */
+  flex: 1 1 320px;
+  max-width: 480px;
+  min-width: 320px;
   background: var(--sidebar-bg); /* Use CSS Variable */
   display: flex;
   flex-direction: column;
-  padding: 32px 24px 24px 24px;
-  border-left: 1px solid var(--border-color); /* Use CSS Variable */
+  gap: 24px;
+  padding: 32px 24px 28px 24px;
+  border: 1px solid var(--border-color); /* Use CSS Variable */
+  border-radius: 18px;
+  box-shadow: 0 0 18px var(--panel-shadow);
   position: relative; /* Added for positioning context */
 }
 
@@ -407,14 +648,19 @@ button:hover,
 @media (max-width: 900px) {
   #app-container {
     flex-direction: column;
-    height: auto; /* Allow height to adjust */
-    max-width: 100%; /* Remove max-width constraint */
+    width: min(100%, 96vw);
+    margin: 32px auto;
   }
-  #video-section, #sidebar {
-    padding: 16px;
+  #video-section,
+  #sidebar {
+    padding: 24px 20px;
     min-width: unset; /* Remove min/max width constraints */
     max-width: unset;
-    border-left: none; /* Remove border when stacked */
+    border-radius: 16px;
+  }
+  #sidebar {
+    border: 1px solid var(--border-color);
+    margin-top: 24px;
   }
 
   #controls-tag-row {
@@ -433,6 +679,36 @@ button:hover,
 
   #interaction-panels {
     width: 100%;
+  }
+
+  #video-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  #player-column {
+    position: static;
+  }
+  #controls-column,
+  #controls-column.controls-collapsed {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    padding: 24px 20px;
+  }
+  #controls-column.controls-collapsed .controls-column-body {
+    display: flex;
+  }
+  #controls-column.controls-collapsed .controls-title {
+    display: block;
+  }
+  #controls-column.controls-collapsed .controls-toggle {
+    writing-mode: horizontal-tb;
+    transform: none;
+    padding: 6px 16px;
+  }
+  #controls-column.controls-collapsed .mode-toggle {
+    display: inline-flex;
   }
 }
 

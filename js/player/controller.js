@@ -17,6 +17,22 @@
     const sidebar = document.getElementById('sidebar');
     const controlsRow = document.getElementById('controls-tag-row');
     const timelineContainer = document.getElementById('timeline-container');
+    const body = document.body;
+    if (body) {
+      body.classList.add('player-active');
+      body.classList.remove('sidecar-collapsed');
+    }
+
+    const controlsColumn = document.getElementById('controls-column');
+    const controlsToggleBtn = document.getElementById('controls-collapse-btn');
+    if (controlsColumn) {
+      controlsColumn.classList.remove('controls-collapsed');
+    }
+    if (controlsToggleBtn) {
+      controlsToggleBtn.setAttribute('aria-expanded', 'true');
+      controlsToggleBtn.textContent = 'Collapse';
+      controlsToggleBtn.setAttribute('aria-label', 'Collapse control panel');
+    }
 
     if (videoLoader) videoLoader.style.display = 'none';
     if (playerContainer) playerContainer.style.display = 'block';
@@ -36,8 +52,14 @@
       youtubeContainer.hidden = true;
     }
 
+    if (global.ytPlayer) body.classList.add('youtube-mode');
+    else body.classList.remove('youtube-mode');
+
     if (typeof player.applyMediaMode === 'function') {
       player.applyMediaMode();
+    }
+    if (typeof global.updateAudioModeToggle === 'function') {
+      global.updateAudioModeToggle();
     }
     player.updateAudioControls('showPlayer');
     player.logPlayerLayout('showPlayer');
@@ -89,13 +111,16 @@
     player.updateAudioControls('init:controls');
   }
 
-  function attachAudioProgressHandlers(audioProgress, videoElement) {
-    if (!audioProgress) return;
+  function attachAudioProgressHandlers(audioProgress, audioVolume, videoElement) {
+    if (!audioProgress && !audioVolume) return;
 
-    audioProgress.dataset.scrubbing = audioProgress.dataset.scrubbing || 'false';
+    if (audioProgress) {
+      audioProgress.dataset.scrubbing = audioProgress.dataset.scrubbing || 'false';
+    }
     let suppressChangeCommit = false;
 
     const markScrubbing = (state, context) => {
+      if (!audioProgress) return;
       const nextState = state ? 'true' : 'false';
       if (audioProgress.dataset.scrubbing !== nextState) {
         console.debug('[video.js] seek:scrubState', { state: nextState, context });
@@ -130,7 +155,7 @@
     };
 
     const finalizeScrub = (context) => {
-      if (audioProgress.dataset.scrubbing !== 'true') return;
+      if (!audioProgress || audioProgress.dataset.scrubbing !== 'true') return;
       markScrubbing(false, context);
       if (!suppressChangeCommit) {
         commitSeek(audioProgress.value, context);
@@ -139,35 +164,55 @@
     };
 
     const cancelScrub = (context) => {
-      if (audioProgress.dataset.scrubbing === 'true') {
+      if (audioProgress && audioProgress.dataset.scrubbing === 'true') {
         markScrubbing(false, context);
         player.updateAudioControls(`seek:${context}`);
       }
     };
 
-    audioProgress.addEventListener('input', () => {
-      if (audioProgress.dataset.scrubbing === 'true') {
+    if (audioProgress) {
+      audioProgress.addEventListener('input', () => {
+        audioProgress.dataset.scrubbing = 'true';
         suppressChangeCommit = true;
         player.updateAudioControls('seek:preview');
-      }
-    });
-    audioProgress.addEventListener('change', () => {
-      if (audioProgress.dataset.scrubbing === 'true') return;
-      commitSeek(audioProgress.value, 'change');
-    });
+      });
+      audioProgress.addEventListener('change', () => {
+        if (audioProgress.dataset.scrubbing === 'true') return;
+        commitSeek(audioProgress.value, 'change');
+      });
 
-    audioProgress.addEventListener('pointerdown', () => markScrubbing(true, 'pointerdown'));
-    audioProgress.addEventListener('pointerup', () => finalizeScrub('pointerup'));
-    audioProgress.addEventListener('pointercancel', () => cancelScrub('pointercancel'));
-    audioProgress.addEventListener('mousedown', () => markScrubbing(true, 'mousedown'));
-    audioProgress.addEventListener('mouseup', () => finalizeScrub('mouseup'));
+      audioProgress.addEventListener('pointerdown', () => markScrubbing(true, 'pointerdown'));
+      audioProgress.addEventListener('pointerup', () => finalizeScrub('pointerup'));
+      audioProgress.addEventListener('pointercancel', () => cancelScrub('pointercancel'));
+      audioProgress.addEventListener('mousedown', () => markScrubbing(true, 'mousedown'));
+      audioProgress.addEventListener('mouseup', () => finalizeScrub('mouseup'));
 
-    audioProgress.addEventListener('touchstart', () => markScrubbing(true, 'touchstart'), { passive: true });
-    audioProgress.addEventListener('touchend', () => finalizeScrub('touchend'));
-    audioProgress.addEventListener('touchcancel', () => cancelScrub('touchcancel'));
+      audioProgress.addEventListener('touchstart', () => markScrubbing(true, 'touchstart'), { passive: true });
+      audioProgress.addEventListener('touchend', () => finalizeScrub('touchend'));
+      audioProgress.addEventListener('touchcancel', () => cancelScrub('touchcancel'));
 
-    audioProgress.addEventListener('blur', () => cancelScrub('blur'));
-    audioProgress.addEventListener('mouseleave', () => cancelScrub('mouseleave'));
+      audioProgress.addEventListener('blur', () => cancelScrub('blur'));
+      audioProgress.addEventListener('mouseleave', () => cancelScrub('mouseleave'));
+    }
+
+    if (audioVolume) {
+      const applyVolume = (value, reason) => {
+        const vol = Number.parseFloat(value);
+        if (!Number.isFinite(vol)) return;
+        const clamped = Math.max(0, Math.min(100, vol));
+        if (global.ytPlayer && typeof global.ytPlayer.setVolume === 'function') {
+          global.ytPlayer.setVolume(clamped);
+        } else if (global.plyrInstance) {
+          global.plyrInstance.volume = clamped / 100;
+        } else if (videoElement) {
+          videoElement.volume = clamped / 100;
+        }
+        player.updateAudioControls(`volume:${reason}`);
+      };
+
+      audioVolume.addEventListener('input', () => applyVolume(audioVolume.value, 'input'));
+      audioVolume.addEventListener('change', () => applyVolume(audioVolume.value, 'change'));
+    }
   }
 
   function destroyYouTubePlayer() {
@@ -222,7 +267,8 @@
     const sourceEl = videoElement?.querySelector('source');
     if (sourceEl) {
       sourceEl.src = objectUrl;
-    } else if (videoElement) {
+    }
+    if (videoElement) {
       videoElement.src = objectUrl;
     }
     videoElement?.load();
@@ -311,6 +357,19 @@
       const noVideoMsg = document.getElementById('no-video-message');
       if (noVideoMsg) noVideoMsg.style.display = 'none';
       global.currentVideoSource = file.name;
+      document.body.classList.remove('youtube-mode');
+      global.mediaMode = MEDIA_MODE.VIDEO;
+      if (typeof window.updateAudioModeToggle === 'function') {
+        window.updateAudioModeToggle();
+      }
+      const { youtubeContainer, youtubePlaceholder } = player.getMediaElements();
+      if (youtubeContainer) {
+        youtubeContainer.innerHTML = '';
+        youtubeContainer.hidden = true;
+      }
+      if (youtubePlaceholder) {
+        youtubePlaceholder.style.display = 'none';
+      }
 
       const startTagBtn = document.getElementById('start-tag-btn');
       const endTagBtn = document.getElementById('end-tag-btn');
@@ -356,21 +415,35 @@
       videoElement.pause();
       const sourceToClear = videoElement.querySelector('source');
       if (sourceToClear) sourceToClear.src = '';
+      videoElement.removeAttribute('src');
+      videoElement.load();
       videoElement.style.display = 'none';
-      const { html5Wrapper, youtubeContainer } = player.getMediaElements();
+
+      const { html5Wrapper, youtubeContainer, youtubePlaceholder, audioControlBar } = player.getMediaElements();
+      document.body.classList.add('youtube-mode');
+      if (youtubePlaceholder) {
+        youtubePlaceholder.style.display = '';
+      }
       if (html5Wrapper) html5Wrapper.hidden = true;
-      if (youtubeContainer) youtubeContainer.hidden = false;
+      if (youtubeContainer) {
+        youtubeContainer.innerHTML = '';
+        youtubeContainer.hidden = true;
+        youtubeContainer.style.visibility = 'hidden';
+      }
 
       global.currentVideoSource = ytUrl;
       if (noVideoMsg) noVideoMsg.style.display = 'none';
 
-      player.updateAudioControls('youtube:load:init');
+    global.mediaMode = MEDIA_MODE.VIDEO;
+    if (typeof window.updateAudioModeToggle === 'function') {
+      window.updateAudioModeToggle();
+    }
+    player.updateAudioControls('youtube:load:init');
 
       player.logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
       if (typeof player.applyMediaMode === 'function') {
         player.applyMediaMode();
       }
-      const { audioControlBar } = player.getMediaElements();
       if (audioControlBar && global.mediaMode === MEDIA_MODE.AUDIO) {
         audioControlBar.hidden = false;
         audioControlBar.removeAttribute('hidden');
@@ -469,7 +542,7 @@
     const videoElement = elements.video;
 
     attachAudioToggle(videoElement);
-    attachAudioProgressHandlers(elements.audioProgress, videoElement);
+    attachAudioProgressHandlers(elements.audioProgress, elements.audioVolume, videoElement);
     setupLocalVideoLoading(videoElement);
     setupYouTubeLoading(videoElement);
     setupJumpToTime(videoElement, document.getElementById('jump-time-input'), document.getElementById('jump-time-btn'));

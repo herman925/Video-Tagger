@@ -366,3 +366,34 @@ input:checked + .slider .theme-icon.moon {
     transition-delay: .25s;
   }
 }
+
+.player-test-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1200;
+  padding: 0.65rem 1.4rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--accentColor, #3366cc);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.player-test-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
+}
+
+.player-test-btn:active {
+  transform: translateY(1px);
+}
+
+.player-test-btn:focus-visible {
+  outline: 3px solid rgba(51, 102, 204, 0.4);
+  outline-offset: 2px;
+}

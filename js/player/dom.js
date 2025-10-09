@@ -12,15 +12,19 @@
       placeholder: document.getElementById('audio-only-placeholder'),
       audioControlBar: document.getElementById('audio-control-bar'),
       mediaContent: document.getElementById('media-content'),
-      html5Wrapper: document.getElementById('html5-wrapper'),
-      youtubeContainer: document.getElementById('youtube-container'),
-      video: document.getElementById('video'),
-      audioToggleBtn: document.getElementById('audio-toggle-btn'),
-      audioStatus: document.getElementById('audio-status'),
-      audioProgress: document.getElementById('audio-progress'),
-      timeline: document.getElementById('timeline')
-    };
-  }
+    html5Wrapper: document.getElementById('html5-wrapper'),
+    youtubePlaceholder: document.getElementById('youtube-placeholder'),
+    youtubeContainer: document.getElementById('youtube-container'),
+    video: document.getElementById('video'),
+    audioToggleBtn: document.getElementById('audio-toggle-btn'),
+    audioStatus: document.getElementById('audio-status'),
+    audioProgress: document.getElementById('audio-progress'),
+    audioVolume: document.getElementById('audio-volume'),
+    audioBanner: document.getElementById('audio-mode-banner'),
+    timeline: document.getElementById('timeline'),
+    controlsColumn: document.getElementById('controls-column')
+  };
+}
 
   function describeElementForLog(element, options = {}, depth = 0) {
     if (!element) return null;
@@ -225,11 +229,13 @@
 
   function collectYouTubeDiagnostics(elements) {
     const container = elements.youtubeContainer;
+    const placeholder = elements.youtubePlaceholder;
     const iframe = container?.querySelector('iframe') || null;
     const ytPlayer = global.ytPlayer || null;
-    if (!container && !ytPlayer) return null;
+    if (!container && !ytPlayer && !placeholder) return null;
     const diag = {
       container: describeElementForLog(container, { includeChildren: true, maxDepth: 2 }),
+      placeholder: describeElementForLog(placeholder),
       iframe: describeElementForLog(iframe),
       playerState: ytPlayer && global.YT && global.YT.PlayerState
         ? Object.entries(global.YT.PlayerState).reduce((acc, [key, value]) => {
@@ -310,7 +316,9 @@
           placeholder: describeElementForLog(elements.placeholder),
           audioControlBar: describeElementForLog(elements.audioControlBar, { includeChildren: true, maxDepth: 2 }),
           html5Wrapper: describeElementForLog(elements.html5Wrapper, { includeChildren: true, maxDepth: 2 }),
+          youtubePlaceholder: describeElementForLog(elements.youtubePlaceholder),
           youtubeContainer: describeElementForLog(elements.youtubeContainer, { includeChildren: true, maxDepth: 2 }),
+          controlsColumn: describeElementForLog(elements.controlsColumn, { includeChildren: true, maxDepth: 2 }),
           timeline: describeElementForLog(elements.timeline, { includeChildren: true, maxDepth: 1 })
         },
         audioControls: collectAudioControlDiagnostics(elements),

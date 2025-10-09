@@ -22,6 +22,14 @@
   display: block;
 }
 
+#video-player.audio-mode #youtube-container {
+  min-height: 0;
+}
+
+#video-player.audio-mode #youtube-container iframe {
+  min-height: 0;
+}
+
 #controls {
   display: flex;
   align-items: center;

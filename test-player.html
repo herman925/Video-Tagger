@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Tagger Player Test</title>
+  <link rel="icon" href="favicon.ico" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(180deg, #f1f5ff 0%, #ffffff 100%);
+      color: #1b2a4b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 80px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 2rem;
+      text-align: center;
+      color: #2f5bd3;
+    }
+
+    p {
+      margin: 0 0 24px;
+      text-align: center;
+      color: #4c5e87;
+      max-width: 640px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .controls input[type="text"] {
+      min-width: 280px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid #c8d4f0;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.9);
+    }
+
+    .controls button {
+      padding: 12px 24px;
+      border-radius: 999px;
+      border: none;
+      background: #2f5bd3;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .controls button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(47, 91, 211, 0.18);
+    }
+
+    .controls button:active {
+      transform: translateY(1px);
+    }
+
+    #player-shell {
+      width: min(960px, 100%);
+      border-radius: 20px;
+      background: #0f1b33;
+      padding: 12px;
+      box-shadow: 0 18px 50px rgba(30, 58, 138, 0.25);
+      position: relative;
+    }
+
+    #youtube-embed iframe {
+      border: none;
+      border-radius: 12px;
+      width: 100%;
+      height: 430px;
+    }
+
+    #local-video {
+      width: 100%;
+      border-radius: 12px;
+      display: none;
+      background: #000;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #4c5e87;
+    }
+
+    .divider {
+      width: min(960px, 100%);
+      margin: 36px auto;
+      border: none;
+      border-top: 1px solid rgba(76, 94, 135, 0.2);
+    }
+
+    footer {
+      margin-top: 40px;
+      color: #6a7aa3;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .audio-banner {
+      display: none;
+      position: absolute;
+      inset: 12px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(47,91,211,0.85), rgba(111,134,214,0.75));
+      color: #fff;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px 24px 140px 24px;
+      font-size: 1rem;
+      z-index: 2;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    body.audio-only .audio-banner {
+      display: flex;
+    }
+
+    body.audio-only #youtube-embed iframe {
+      height: 110px;
+      opacity: 0.001;
+      pointer-events: none;
+    }
+
+    body.audio-only #local-video {
+      height: 90px;
+      opacity: 0.35;
+    }
+
+    body.audio-only #toggle-audio-mode-btn {
+      background: #36a269;
+    }
+
+    .audio-controls {
+      display: none;
+      margin-top: 18px;
+      background: rgba(15, 27, 51, 0.82);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #e5edff;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 12px 30px rgba(15, 27, 51, 0.35);
+    }
+
+    body.audio-only .audio-controls {
+      display: flex;
+    }
+
+    .audio-controls button {
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #20a86b;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .audio-controls button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(32, 168, 107, 0.3);
+    }
+
+    .audio-controls button:active {
+      transform: translateY(1px);
+    }
+
+    .audio-controls input[type="range"] {
+      flex: 1 1 220px;
+      accent-color: #20a86b;
+    }
+
+    .audio-controls span {
+      min-width: 120px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .audio-controls .volume-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 140px;
+    }
+
+    .audio-controls .volume-wrapper label {
+      font-size: 0.85rem;
+      color: rgba(229, 237, 255, 0.82);
+    }
+
+    .audio-controls .volume-wrapper input[type="range"] {
+      flex: 1;
+      accent-color: #20a86b;
+    }
+
+    @media (max-width: 640px) {
+      #youtube-embed iframe,
+      #local-video {
+        height: 280px;
+      }
+    }
+  </style>
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+  <main>
+    <h1>Player Test Bench</h1>
+    <p>
+      Use this page to sanity-check the simplest possible YouTube and local playback flows.
+      No tagging logic, no timeline—just the raw player so we can isolate issues.
+    </p>
+
+    <section class="controls" aria-label="YouTube loader">
+      <label class="visually-hidden" for="youtube-url">YouTube URL</label>
+      <input type="text" id="youtube-url" placeholder="Paste a YouTube URL (e.g. https://www.youtube.com/watch?v=...)" autocomplete="off">
+      <button id="load-youtube-btn" type="button">Load YouTube</button>
+      <button id="toggle-audio-mode-btn" type="button">Switch to Audio-Only Mode</button>
+    </section>
+
+    <section class="controls" aria-label="Local loader">
+      <input type="file" id="local-video-input" accept="video/*" hidden>
+      <button id="load-local-btn" type="button">Load Local File</button>
+    </section>
+
+    <section id="player-shell">
+      <div id="youtube-embed"></div>
+      <video id="local-video" controls preload="metadata"></video>
+      <div class="audio-banner" id="audio-banner">
+        Audio-only mode active. The YouTube iframe remains active but hidden so the stream can continue playing.
+      </div>
+      <div class="audio-controls" id="audio-controls">
+        <button id="audio-play-pause-btn" type="button">Play</button>
+        <input id="audio-progress" type="range" min="0" max="0" step="0.1" value="0" aria-label="Seek position">
+        <span id="audio-time-label">00:00 / 00:00</span>
+        <div class="volume-wrapper">
+          <label for="audio-volume">Volume</label>
+          <input id="audio-volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume">
+        </div>
+      </div>
+    </section>
+
+    <div class="status" id="status-line">Idle. Choose a source above to begin testing.</div>
+
+    <hr class="divider">
+
+    <footer>
+      Tip: Disable ad blockers and tracking protection for localhost while testing YouTube embeds, otherwise
+      the IFrame API may refuse to report ready state or duration.
+    </footer>
+  </main>
+
+  <script>
+    const statusLine = document.getElementById('status-line');
+    const youtubeField = document.getElementById('youtube-url');
+    const loadYoutubeBtn = document.getElementById('load-youtube-btn');
+    const toggleAudioBtn = document.getElementById('toggle-audio-mode-btn');
+    const loadLocalBtn = document.getElementById('load-local-btn');
+    const localInput = document.getElementById('local-video-input');
+    const localVideoEl = document.getElementById('local-video');
+    const youtubeContainer = document.getElementById('youtube-embed');
+    const audioBanner = document.getElementById('audio-banner');
+    const audioControls = document.getElementById('audio-controls');
+    const audioPlayPauseBtn = document.getElementById('audio-play-pause-btn');
+    const audioProgress = document.getElementById('audio-progress');
+    const audioTimeLabel = document.getElementById('audio-time-label');
+    const audioVolume = document.getElementById('audio-volume');
+
+    window.ytPlayer = null;
+    window.pendingYouTubeLoad = null;
+    window.plyrInstance = null;
+    let audioControlsInterval = null;
+    let audioScrubbing = false;
+
+    audioControls.hidden = true;
+    audioBanner.style.display = 'none';
+
+    function setStatus(text) {
+      statusLine.textContent = text;
+    }
+
+    function resetPlayers() {
+      stopAudioControlsInterval();
+      if (window.ytPlayer && typeof window.ytPlayer.destroy === 'function') {
+        try { window.ytPlayer.destroy(); } catch (err) { console.warn('YT destroy failed', err); }
+      }
+      window.ytPlayer = null;
+      youtubeContainer.innerHTML = '';
+
+      if (window.plyrInstance) {
+        try { window.plyrInstance.destroy(); } catch (err) { console.warn('Plyr destroy failed', err); }
+      }
+      window.plyrInstance = null;
+
+      localVideoEl.pause();
+      localVideoEl.removeAttribute('src');
+      localVideoEl.load();
+      localVideoEl.style.display = 'none';
+      audioProgress.value = 0;
+      audioProgress.max = 0;
+      audioTimeLabel.textContent = '00:00 / 00:00';
+      audioVolume.value = 100;
+      audioVolume.disabled = true;
+      audioControls.hidden = !document.body.classList.contains('audio-only');
+    }
+
+    function extractVideoId(url) {
+      const trimmed = (url || '').trim();
+      if (!trimmed) return null;
+      const match = trimmed.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+      return match ? match[1] : null;
+    }
+
+    // --- YouTube embedding (native API) ---
+    function onYouTubeIframeAPIReady() {
+      if (window.pendingYouTubeLoad) {
+        createYouTubePlayer(window.pendingYouTubeLoad);
+        window.pendingYouTubeLoad = null;
+      }
+    }
+    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+    function createYouTubePlayer(videoId) {
+      resetPlayers();
+      const playerDiv = document.createElement('div');
+      playerDiv.id = 'youtube-player';
+      youtubeContainer.appendChild(playerDiv);
+
+      try {
+        window.ytPlayer = new YT.Player('youtube-player', {
+          width: '100%',
+          height: '430',
+          videoId,
+          playerVars: {
+            playsinline: 1,
+            modestbranding: 1,
+            rel: 0,
+            controls: 1
+          },
+          events: {
+            onReady(event) {
+              const duration = event.target.getDuration();
+              setStatus('YouTube player ready. Duration: ' + (Number.isFinite(duration) ? duration.toFixed(1) : '0.0') + 's');
+              if (document.body.classList.contains('audio-only')) {
+                startAudioControlsInterval();
+              } else {
+                refreshAudioControls();
+              }
+            },
+            onStateChange(event) {
+              const label = {
+                '-1': 'unstarted',
+                '0': 'ended',
+                '1': 'playing',
+                '2': 'paused',
+                '3': 'buffering',
+                '5': 'cued'
+              }[event.data] || 'unknown';
+              setStatus('YouTube state: ' + label);
+              if (document.body.classList.contains('audio-only')) {
+                refreshAudioControls();
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Failed to initialise YT.Player', err);
+        setStatus('Failed to initialise YouTube player. See console for details.');
+      }
+    }
+
+    // --- Local video playback with Plyr (optional) ---
+    function loadLocalVideo(file) {
+      resetPlayers();
+      const objectUrl = URL.createObjectURL(file);
+      localVideoEl.src = objectUrl;
+      localVideoEl.style.display = 'block';
+      localVideoEl.addEventListener('loadedmetadata', () => {
+        setStatus(`Local file ready: ${file.name} (${localVideoEl.duration.toFixed(1)}s)`);
+        if (!window.plyrInstance) {
+          try {
+            window.plyrInstance = new Plyr(localVideoEl, {
+              controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen']
+            });
+          } catch (err) {
+            console.warn('Plyr failed to initialise, falling back to native controls.', err);
+            localVideoEl.controls = true;
+          }
+        }
+        if (document.body.classList.contains('audio-only')) {
+          startAudioControlsInterval();
+        } else {
+          refreshAudioControls();
+        }
+      }, { once: true });
+    }
+
+    function formatTime(value) {
+      if (!Number.isFinite(value) || value < 0) return '00:00';
+      const minutes = Math.floor(value / 60);
+      const seconds = Math.floor(value % 60);
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function getActiveMediaApi() {
+      if (window.ytPlayer && typeof window.ytPlayer.getDuration === 'function') {
+        return {
+          type: 'youtube',
+          getDuration: () => Number(window.ytPlayer.getDuration?.()) || 0,
+          getCurrentTime: () => Number(window.ytPlayer.getCurrentTime?.()) || 0,
+          play: () => window.ytPlayer.playVideo?.(),
+          pause: () => window.ytPlayer.pauseVideo?.(),
+          seek: (seconds) => window.ytPlayer.seekTo?.(seconds, true),
+          getVolume: () => {
+            const vol = window.ytPlayer.getVolume?.();
+            return Number.isFinite(vol) ? vol : 100;
+          },
+          setVolume: (value) => window.ytPlayer.setVolume?.(Math.max(0, Math.min(100, value))),
+          isPlaying: () => {
+            if (!window.YT || !window.YT.PlayerState) return false;
+            return window.ytPlayer.getPlayerState?.() === window.YT.PlayerState.PLAYING;
+          }
+        };
+      }
+      if (window.plyrInstance) {
+        return {
+          type: 'local',
+          getDuration: () => Number(window.plyrInstance.duration) || 0,
+          getCurrentTime: () => Number(window.plyrInstance.currentTime) || 0,
+          play: () => window.plyrInstance.play(),
+          pause: () => window.plyrInstance.pause(),
+          seek: (seconds) => { window.plyrInstance.currentTime = seconds; },
+          getVolume: () => Number.isFinite(window.plyrInstance.volume) ? window.plyrInstance.volume * 100 : 100,
+          setVolume: (value) => {
+            const next = Math.max(0, Math.min(100, value)) / 100;
+            window.plyrInstance.volume = next;
+          },
+          isPlaying: () => !window.plyrInstance.paused
+        };
+      }
+      if (localVideoEl && localVideoEl.readyState >= 1) {
+        return {
+          type: 'local',
+          getDuration: () => Number(localVideoEl.duration) || 0,
+          getCurrentTime: () => Number(localVideoEl.currentTime) || 0,
+          play: () => localVideoEl.play(),
+          pause: () => localVideoEl.pause(),
+          seek: (seconds) => { localVideoEl.currentTime = seconds; },
+          getVolume: () => Number.isFinite(localVideoEl.volume) ? localVideoEl.volume * 100 : 100,
+          setVolume: (value) => {
+            const next = Math.max(0, Math.min(100, value)) / 100;
+            localVideoEl.volume = next;
+          },
+          isPlaying: () => !localVideoEl.paused
+        };
+      }
+      return null;
+    }
+
+    function refreshAudioControls() {
+      const api = getActiveMediaApi();
+      if (!api) {
+        audioPlayPauseBtn.disabled = true;
+        audioProgress.disabled = true;
+        audioTimeLabel.textContent = '00:00 / 00:00';
+        return;
+      }
+
+      audioPlayPauseBtn.disabled = false;
+      audioProgress.disabled = false;
+
+      const duration = api.getDuration() || 0;
+      const current = api.getCurrentTime() || 0;
+
+      audioProgress.max = duration > 0 ? duration : 0;
+      if (!audioScrubbing) {
+        audioProgress.value = current;
+      }
+      audioTimeLabel.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+      audioPlayPauseBtn.textContent = api.isPlaying() ? 'Pause' : 'Play';
+      if (typeof api.getVolume === 'function') {
+        audioVolume.disabled = false;
+        audioVolume.value = Math.round(api.getVolume());
+      } else {
+        audioVolume.disabled = true;
+      }
+    }
+
+    function startAudioControlsInterval() {
+      stopAudioControlsInterval();
+      refreshAudioControls();
+      audioControlsInterval = setInterval(refreshAudioControls, 250);
+    }
+
+    function stopAudioControlsInterval() {
+      if (audioControlsInterval) {
+        clearInterval(audioControlsInterval);
+        audioControlsInterval = null;
+      }
+    }
+
+    // --- Event wiring ---
+    loadYoutubeBtn.addEventListener('click', () => {
+      const id = extractVideoId(youtubeField.value);
+      if (!id) {
+        alert('Please enter a valid YouTube URL.');
+        return;
+      }
+      setStatus('Loading YouTube video...');
+      if (typeof YT !== 'undefined' && YT.Player) {
+        createYouTubePlayer(id);
+      } else {
+        window.pendingYouTubeLoad = id;
+        setStatus('Waiting for YouTube API to finish loading…');
+      }
+    });
+
+    youtubeField.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        loadYoutubeBtn.click();
+      }
+    });
+
+    toggleAudioBtn.addEventListener('click', () => {
+      const audio = document.body.classList.toggle('audio-only');
+      toggleAudioBtn.textContent = audio ? 'Switch to Video Mode' : 'Switch to Audio-Only Mode';
+      audioBanner.style.display = audio ? 'flex' : 'none';
+      audioControls.hidden = !audio;
+      if (audio) {
+        setStatus('Audio-only mode enabled. Video surface is minimised.');
+        startAudioControlsInterval();
+      } else {
+        setStatus('Video mode restored.');
+        stopAudioControlsInterval();
+        audioVolume.disabled = true;
+      }
+    });
+
+    audioPlayPauseBtn.addEventListener('click', () => {
+      const api = getActiveMediaApi();
+      if (!api) return;
+      if (api.isPlaying()) api.pause();
+      else api.play();
+      refreshAudioControls();
+    });
+
+    audioProgress.addEventListener('input', () => {
+      audioScrubbing = true;
+      audioTimeLabel.textContent = `${formatTime(Number(audioProgress.value))} / ${formatTime(Number(audioProgress.max))}`;
+    });
+
+    audioProgress.addEventListener('change', () => {
+      const api = getActiveMediaApi();
+      if (api) {
+        const target = Number(audioProgress.value);
+        if (Number.isFinite(target)) api.seek(target);
+      }
+      audioScrubbing = false;
+    });
+
+    audioVolume.addEventListener('input', () => {
+      const api = getActiveMediaApi();
+      if (!api || typeof api.setVolume !== 'function') return;
+      const value = Number(audioVolume.value);
+      if (Number.isFinite(value)) {
+        api.setVolume(value);
+      }
+      refreshAudioControls();
+    });
+
+    audioVolume.addEventListener('change', () => {
+      const api = getActiveMediaApi();
+      if (!api || typeof api.setVolume !== 'function') return;
+      const value = Number(audioVolume.value);
+      if (Number.isFinite(value)) {
+        api.setVolume(value);
+      }
+      refreshAudioControls();
+    });
+
+    loadLocalBtn.addEventListener('click', () => {
+      localInput.value = '';
+      localInput.click();
+    });
+
+    localInput.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      setStatus('Loading local file...');
+      loadLocalVideo(file);
+    });
+
+    setStatus('Idle. Choose a source above to begin testing.');
+  </script>
+</body>
+</html>

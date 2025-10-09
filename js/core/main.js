@@ -1,5 +1,7 @@
 // Main application logic, theme switching, initialization
 
+const ADMIN_PASSWORD = 'ks2.0';
+
 let hasUnsavedChanges = false;
 window.markDirty = () => { hasUnsavedChanges = true; };
 window.markSaved = () => { hasUnsavedChanges = false; };
@@ -13,6 +15,12 @@ window.addEventListener('beforeunload', e => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  const videoTaggerNamespace = window.VideoTagger = window.VideoTagger || {};
+  videoTaggerNamespace.core = videoTaggerNamespace.core || {};
+  const videoTaggerCore = videoTaggerNamespace.core;
+  if (typeof videoTaggerCore.adminUnlocked !== 'boolean') {
+    videoTaggerCore.adminUnlocked = false;
+  }
   window.mediaMode = window.mediaMode || 'audio';
   window.currentVID = window.currentVID || '';
   if (typeof window.applyMediaMode === 'function') {
@@ -48,6 +56,24 @@ document.addEventListener('DOMContentLoaded', () => {
     theme.value = isDark ? 'dark' : 'light';
     setPreference();
   });
+
+  const testBtn = document.getElementById('player-test-btn');
+  if (testBtn) {
+    testBtn.addEventListener('click', () => {
+      if (videoTaggerCore.adminUnlocked) {
+        window.open('test-player.html', '_blank', 'noopener');
+        return;
+      }
+      const input = window.prompt('Enter the admin password to open the player test view:');
+      if (input === null) return;
+      if (input === ADMIN_PASSWORD) {
+        videoTaggerCore.adminUnlocked = true;
+        window.open('test-player.html', '_blank', 'noopener');
+      } else {
+        window.alert('Incorrect password.');
+      }
+    });
+  }
 
   // Initialize other components if they exist
   if (typeof initVideo === 'function') initVideo();
@@ -92,6 +118,41 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initAdminControls();
+
+  const controlsColumn = document.getElementById('controls-column');
+  const controlsToggleBtn = document.getElementById('controls-collapse-btn');
+  const audioModeToggleBtn = document.getElementById('audio-mode-toggle');
+  if (audioModeToggleBtn) {
+    const updateAudioModeToggle = () => {
+      const isAudio = (window.mediaMode || 'audio') === 'audio';
+      audioModeToggleBtn.textContent = isAudio ? 'Switch to Video Mode' : 'Switch to Audio Mode';
+      audioModeToggleBtn.setAttribute('aria-pressed', String(isAudio));
+      audioModeToggleBtn.setAttribute('aria-label', isAudio ? 'Switch to video mode' : 'Switch to audio mode');
+    };
+    audioModeToggleBtn.addEventListener('click', () => {
+      window.mediaMode = (window.mediaMode === 'audio') ? 'video' : 'audio';
+      if (typeof window.applyMediaMode === 'function') {
+        window.applyMediaMode();
+      }
+      updateAudioModeToggle();
+    });
+    updateAudioModeToggle();
+    window.updateAudioModeToggle = updateAudioModeToggle;
+  } else {
+    window.updateAudioModeToggle = () => {};
+  }
+
+  if (controlsColumn && controlsToggleBtn) {
+    controlsToggleBtn.addEventListener('click', () => {
+      const collapsed = controlsColumn.classList.toggle('controls-collapsed');
+      controlsToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+      controlsToggleBtn.textContent = collapsed ? 'Expand' : 'Collapse';
+      controlsToggleBtn.setAttribute('aria-label', collapsed ? 'Expand control panel' : 'Collapse control panel');
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.toggle('sidecar-collapsed', collapsed);
+      }
+    });
+  }
 
   // Tear down active players and reset media UI so a fresh source can load cleanly.
   function resetMediaState(reason) {
@@ -152,9 +213,16 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.youtubeContainer.style.pointerEvents = '';
       elements.youtubeContainer.style.display = '';
       elements.youtubeContainer.style.height = '';
+      elements.youtubeContainer.style.visibility = '';
+    }
+    if (elements.youtubePlaceholder) {
+      elements.youtubePlaceholder.style.display = 'none';
     }
     if (elements.html5Wrapper) {
       elements.html5Wrapper.hidden = false;
+    }
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.remove('youtube-mode', 'player-active');
     }
 
     if (elements.audioToggleBtn) {
@@ -169,12 +237,37 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.audioProgress.value = 0;
       elements.audioProgress.max = 0;
     }
+    if (elements.audioVolume) {
+      elements.audioVolume.value = 100;
+      elements.audioVolume.disabled = true;
+    }
 
     if (typeof updateAudioControls === 'function') {
       updateAudioControls();
     }
     if (typeof logPlayerLayout === 'function') {
       logPlayerLayout(`resetMediaState:${reason}`);
+    }
+
+    const controlsColumnNode = document.getElementById('controls-column');
+    const controlsToggleNode = document.getElementById('controls-collapse-btn');
+    if (controlsColumnNode) {
+      controlsColumnNode.classList.remove('controls-collapsed');
+    }
+    if (controlsToggleNode) {
+      controlsToggleNode.setAttribute('aria-expanded', 'true');
+      controlsToggleNode.textContent = 'Collapse';
+      controlsToggleNode.setAttribute('aria-label', 'Collapse control panel');
+    }
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.remove('sidecar-collapsed');
+    }
+    window.mediaMode = 'audio';
+    if (typeof window.updateAudioModeToggle === 'function') {
+      window.updateAudioModeToggle();
+    }
+    if (typeof window.applyMediaMode === 'function') {
+      window.applyMediaMode();
     }
   }
 
@@ -341,8 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     authBtn.addEventListener('click', () => {
       if (!passwordInput) return;
-      if (passwordInput.value === 'ks2.0') {
+      if (passwordInput.value === ADMIN_PASSWORD) {
         isUnlocked = true;
+        videoTaggerCore.adminUnlocked = true;
         passwordSection.hidden = true;
         toggleSection.hidden = false;
         errorEl.textContent = '';

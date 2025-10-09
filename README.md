@@ -29,7 +29,6 @@ Video-Tagger/
 │   │   ├── dom.js
 │   │   ├── state.js
 │   │   ├── timeline.js
-│   │   ├── youtubeAdapter.js
 │   │   └── youtubeController.js
 │   └── tagging/             # Tag capture flows, exports, and persistence
 │       ├── export.js
@@ -49,8 +48,7 @@ Playback logic has been split across the `js/player/` directory:
 - `dom.js` centralises DOM queries and structured logging for diagnostics.
 - `audioControls.js` exposes `updateAudioControls`/`applyMediaMode` and keeps state via `player.state`.
 - `timeline.js` manages the ruler markers, interval overlays, and public helpers such as `showStartDotOnTimeline`.
-- `youtubeAdapter.js` surfaces the Plyr-backed adapter and shared YouTube player constants.
-- `youtubeController.js` handles Plyr event wiring, player ready/state callbacks, and fallback behaviour for the YouTube API.
+- `youtubeController.js` now wraps the native YouTube IFrame API, wiring ready/state events directly into the tagging flow without an extra adapter layer.
 - `controller.js` now focuses on wiring DOM events (local loads, YouTube loads, scrubbing, shortcuts) and stays under ~500 lines.
 
 Namespaces (`VideoTagger.core`, `VideoTagger.player`, `VideoTagger.tagging`) are initialised in `js/core/namespace.js`, keeping globals predictable while remaining bundler-free.
@@ -68,6 +66,10 @@ serve .
 ```
 
 Then open `http://localhost:8000` (or whichever port you choose) in a modern Chromium-based browser.
+
+### Player Test Harness
+
+When debugging playback issues, click the **Test** button in the bottom-right corner of the home page (admin password required) to launch `test-player.html`. The standalone page provides the simplest possible environment: a native YouTube IFrame API embed and an optional Plyr-wrapped local file loader, letting you confirm playback works before exercising the full tagging UI.
 
 ### Using the App
 1. Load a local video/audio file **or** paste a YouTube URL and click **Open**.
