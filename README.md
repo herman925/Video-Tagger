@@ -1,486 +1,334 @@
 # Video Tagger
 
-A browser-based interval tagging tool for long-form audio or video sources, designed for researchers at The Education University of Hong Kong. The app supports both local media files and YouTube playback, enables reviewers to capture millisecond-accurate start/end points, and produces CSV/JSON exports that summarize each tagged segment with multiple tags, language flags, and contextual remarks.
-
-## Design Philosophy & UX Principles
-
-### Audio-First Approach
-Video Tagger **defaults to audio mode** to minimize cognitive load and bandwidth consumption during extended review sessions. Video is hidden (opacity: 0.001) while audio continues playing, allowing reviewers to focus on linguistic analysis without visual distraction. Users can switch to video mode via a password-protected toggle when visual context is required.
-
-### Progressive Disclosure
-The interface reveals complexity gradually:
-1. **Landing hero** – Simple file upload or YouTube URL input
-2. **Two-column layout** – Left column for tagging controls, right column for tag management
-3. **Modals** – Deep editing features (managing multiple tags per interval) appear on demand
-4. **Timeline visualization** – Appears after first tag, showing temporal relationships
-
-### Accessibility & Dark Mode
-- Full keyboard navigation support (Space, I/O for mark points, arrow keys for seeking)
-- Light/dark theme with proper contrast ratios
-- ARIA labels on all interactive elements
-- Material Symbols Outlined icons for visual clarity
-
-## Features
-
-- **Dual playback sources** – Load local media or stream from YouTube while keeping a unified tagging workflow
-- **Multi-tag intervals** – Each interval can have multiple semicolon-separated tags
-- **Language matrix** – Three-language support (Cantonese, English, Mandarin) exported as binary columns
-- **Timeline visualisation** – Adaptive ruler, colored interval bars, click-to-seek functionality
-- **Session management** – Export CSV with language columns (0/1), save/load JSON sessions
-- **Audio/video mode toggle** – Password-protected (ks2.0) to prevent accidental switching
-- **Keyboard driven** – Spacebar for play/pause, I/O for start/end markers, ? for help
-- **Modal-based tag editing** – Add/remove tags dynamically, manage remarks inline
-
-## UI Layout Architecture
-
-### Landing Page (Hero Section)
-**State:** Before any video is loaded  
-**Purpose:** Streamlined entry point for loading media
-
-**Components:**
-- **Hero banner** with app title and description
-- **YouTube URL input** with "Open" button
-- **Local file input** (styled as upload area)
-- **Collapse button** to hide hero after loading
-
-**UX Decision:** The hero hides automatically when media loads (`showApp()` function), transitioning smoothly to the main interface.
-
-### Main Application Layout
-**State:** After video loads  
-**Structure:** Two-column grid with collapsible player section
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  PLAYER SECTION (collapsible)                                │
-│  ┌─────────────────────────┐  ┌───────────────────────┐    │
-│  │   Video Container       │  │  Audio Control Bar    │    │
-│  │   (YouTube / HTML5)     │  │  (audio mode only)    │    │
-│  └─────────────────────────┘  └───────────────────────┘    │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  Timeline Ruler with Interval Markers                 │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-┌──────────────────────┬──────────────────────────────────────┐
-│  LEFT COLUMN         │  RIGHT COLUMN                        │
-│  (Controls)          │  (Tag Management)                    │
-│                      │                                      │
-│  • Session Metadata  │  • Tag List Table                    │
-│    - VID input       │  • Tag Summary Table                 │
-│  • Add Tag Section   │  • Session Actions                   │
-│    - "+ Add Tags"    │    - Export / Save / Load            │
-│    - Language pills  │    - Audio/Video Mode Toggle         │
-│    - Remarks textarea│                                      │
-│    - Mark Start/End  │                                      │
-└──────────────────────┴──────────────────────────────────────┘
-```
-
-### Layout Behavior
-- **Player collapse**: Click button to hide player section, expanding workspace for tag management
-- **Responsive**: Two-column layout on desktop, stacks on mobile
-- **Theme-aware**: All colors use CSS custom properties (`--bg-primary`, `--text-primary`, etc.)
-
-## Video Player Architecture
-
-### Dual Player System
-Video Tagger supports **two completely different playback engines** while maintaining a unified interface:
-
-#### 1. YouTube Player (IFrame API)
-**File:** `js/player/youtubeController.js`
-
-**Initialization:**
-1. User pastes YouTube URL (e.g., `https://www.youtube.com/watch?v=VIDEO_ID`)
-2. App extracts video ID via regex
-3. YouTube IFrame API script loads dynamically
-4. `YT.Player` instantiated with callbacks: `onPlayerReady`, `onPlayerStateChange`
-
-**Key Features:**
-- Asynchronous API loading (waits for `onYouTubeIFrameAPIReady`)
-- State change detection (playing, paused, buffering, ended)
-- Millisecond-accurate `getCurrentTime()` and `seekTo()`
-- No download required - streams directly from YouTube
-
-**Audio Mode Implementation:**
-```javascript
-if (mode === MEDIA_MODE.AUDIO) {
-  youtubeContainer.style.opacity = '0.001';  // Hide video
-  youtubeContainer.style.pointerEvents = 'none';  // Disable clicks
-  // Audio continues playing
-}
-```
-
-**Gotchas:**
-- Must wait for `onReady` event before calling player methods
-- Ad blockers may interfere with API loading
-- Requires internet connection
-
-#### 2. HTML5 Local Player (Plyr-wrapped)
-**File:** `js/player/controller.js` (setupLocalVideoLoading)
-
-**Initialization:**
-1. User selects local file via `<input type="file">`
-2. File object converted to blob URL: `URL.createObjectURL(file)`
-3. Blob URL assigned to `<video>` element's `src` attribute
-4. Plyr library wraps native video element for consistent UI
-5. Event listeners attached: `loadedmetadata`, `timeupdate`, `play`, `pause`
-
-**Key Features:**
-- Works offline - no network required
-- Supports MP4, WebM, OGG formats (browser-dependent)
-- Native HTML5 performance
-- Blob URL automatically revoked on new load to prevent memory leaks
-
-**Audio Mode Implementation:**
-```javascript
-if (mode === MEDIA_MODE.AUDIO) {
-  html5Video.style.opacity = '0.001';
-  html5Video.style.pointerEvents = 'none';
-  html5Wrapper.style.opacity = '0.001';  // Hide Plyr wrapper too
-  // Audio playback continues
-}
-```
-
-**Gotchas:**
-- Large files may cause memory issues in browser
-- Blob URLs are session-specific (don't persist across refreshes)
-- Format support varies by browser
-
-### Unified Interface Layer
-**File:** `js/player/audioControls.js`
-
-Both players feed into a **unified control system**:
-
-**Core Functions:**
-- `getActiveMediaApi()` - Returns current player (YouTube or HTML5)
-- `updateAudioControls()` - Syncs UI with playback state
-- `applyMediaMode()` - Switches between audio/video modes
-- `formatMediaTime()` - Converts seconds to HH:MM:SS.mmm
-
-**Shared State:**
-```javascript
-window.mediaMode = 'audio' | 'video'  // Default: 'audio'
-window.ytPlayer = <YT.Player instance> | null
-window.plyrInstance = <Plyr instance> | null
-```
-
-**Player Detection Logic:**
-```javascript
-function getActiveMediaApi() {
-  if (window.ytPlayer && typeof window.ytPlayer.getPlayerState === 'function') {
-    return { type: 'youtube', player: window.ytPlayer };
-  }
-  if (window.plyrInstance?.media) {
-    return { type: 'html5', player: window.plyrInstance };
-  }
-  return { type: 'none', player: null };
-}
-```
-
-### Media Mode System
-
-**Two Modes:**
-1. **Audio Mode** (default) - Video hidden, audio plays
-2. **Video Mode** - Full video visible
-
-**Switching:**
-- Click "Switch to Audio/Video Mode" button
-- Enter password: `ks2.0` (prevents accidental toggling during long sessions)
-- Mode applies immediately via `applyMediaMode()`
-
-**Visual State Changes:**
-| Element | Audio Mode | Video Mode |
-|---------|------------|------------|
-| Video player | opacity: 0.001 | opacity: 1 |
-| Audio control bar | visible | hidden |
-| Placeholder text | "Audio playback active" | "No Video" |
-| Body class | `.audio-mode-active` | `.video-mode-active` |
-
-**Why Password-Protected?**
-Reviewers work in long sessions (1-2 hours). Accidental mode changes disrupt workflow and waste bandwidth. The password (`ks2.0`) ensures intentional switching only.
-
-## Project Structure
-
-```
-Video-Tagger/
-├── css/                     # Styling layers (base, theme, timeline, tag summary, etc.)
-├── js/
-│   ├── core/                # Namespace bootstrap and cross-cutting utilities
-│   │   ├── main.js
-│   │   ├── namespace.js
-│   │   ├── shortcut.js
-│   │   ├── shortcut_help.js
-│   │   └── utils.js
-│   ├── player/              # Media playback, layout diagnostics, and timeline control
-│   │   ├── audioControls.js
-│   │   ├── controller.js
-│   │   ├── dom.js
-│   │   ├── state.js
-│   │   ├── timeline.js
-│   │   └── youtubeController.js
-│   └── tagging/             # Tag capture flows, exports, and persistence
-│       ├── export.js
-│       ├── load.js
-│       ├── save.js
-│       ├── tag.js
-│       └── tagsummary.js
-├── index.html               # Single-page application shell
-├── requirements.md          # Historical product notes
-└── README.md                # You are here
-```
-
-### Module Refactor
-
-Playback logic has been split across the `js/player/` directory:
-
-- `dom.js` centralises DOM queries and structured logging for diagnostics.
-- `audioControls.js` exposes `updateAudioControls`/`applyMediaMode` and keeps state via `player.state`.
-- `timeline.js` manages the ruler markers, interval overlays, and public helpers such as `showStartDotOnTimeline`.
-- `youtubeController.js` now wraps the native YouTube IFrame API, wiring ready/state events directly into the tagging flow without an extra adapter layer.
-- `controller.js` now focuses on wiring DOM events (local loads, YouTube loads, scrubbing, shortcuts) and stays under ~500 lines.
-
-Namespaces (`VideoTagger.core`, `VideoTagger.player`, `VideoTagger.tagging`) are initialised in `js/core/namespace.js`, keeping globals predictable while remaining bundler-free.
-
-## Tagging Workflow
-
-### 1. Preparation Phase
-**User Actions:**
-1. Load video (YouTube or local file)
-2. Enter VID in Session Metadata field (required for export)
-3. Click "+ Add Tags" button to open tag configuration modal
-
-**Add Tags Modal:**
-- Click "+ Add Tag" button → Input field appears
-- Type tag name and press Enter → Tag added to list
-- Repeat for multiple tags (e.g., "Introduction", "Main Content", "Conclusion")
-- Click "Done" → Tags populated in hidden state
-
-### 2. Tagging Phase
-**User Actions:**
-1. **Select languages** in left column (Cantonese, English, Mandarin - toggle buttons)
-2. **Type remarks** in textarea (optional contextual notes)
-3. **Click "Mark Start"** (or press `I` key) → Video starts playing, start time captured
-4. **Watch/listen** to video segment
-5. **Click "Mark End"** (or press `O` key) → End time captured, interval created
-
-**What Happens:**
-```javascript
-// Interval object created
-{
-  start: 12.456,  // seconds with millisecond precision
-  end: 25.789,
-  label: ["Introduction", "Welcome"],  // Array of tags
-  languages: ["Cantonese", "English"],  // Selected languages
-  remarks: "Speaker introduces topic"
-}
-```
-
-**Visual Feedback:**
-- Timeline shows colored bar for interval
-- Tag list table updates with new row
-- Tag summary table updates counts
-- "Dirty" flag set (prompts save before closing)
-
-### 3. Editing Phase
-**Inline Editing:**
-- **Click tag cell** → Opens "Manage Tags" modal
-  - Add/remove tags for that specific interval
-  - Tags shown as deletable chips
-  - Click "Save Changes" to apply
-- **Click language cell** → Opens language modal
-  - Toggle language checkboxes
-  - Instant update on save
-- **Click remarks cell** → Opens remarks modal
-  - Multi-line textarea for detailed notes
-- **Click start/end time** → Seeks video to that timestamp
-
-**Bulk Actions:**
-- Click interval on timeline → Seeks to start time
-- Click delete button → Removes entire interval
-- Right-click interval (future feature) → Context menu
-
-### 4. Export Phase
-**CSV Export:**
-Click "Export" button → Generates CSV with structure:
-```csv
-Video Source,VID,Start (s),End (s),Start (HH:MM:SS.mmm),End (HH:MM:SS.mmm),Tag,Cantonese,English,Mandarin,Remarks
-"video.mp4","VID001",12.456,25.789,00:00:12.456,00:00:25.789,"Introduction;Welcome",1,1,0,"Speaker introduces topic"
-```
-
-**Key Features:**
-- **Tags**: Semicolon-separated in single column
-- **Languages**: Three binary columns (1 = selected, 0 = not selected)
-- **Times**: Both seconds (for computation) and HH:MM:SS.mmm (for humans)
-- **UTF-8 BOM**: Ensures Excel handles Unicode correctly
-
-**JSON Save:**
-Click "Save" button → Generates JSON with full session state:
-```json
-{
-  "videoSource": "video.mp4",
-  "vid": "VID001",
-  "tags": [
-    {
-      "start": 12.456,
-      "end": 25.789,
-      "label": ["Introduction", "Welcome"],
-      "languages": ["Cantonese", "English"],
-      "remarks": "Speaker introduces topic"
-    }
-  ]
-}
-```
-
-**Load Session:**
-Click "Load" button → File picker → Restores entire session (video source, VID, all intervals)
-
-## Modal System
-
-### Modal Architecture
-**File:** `css/modals.css` + inline modal HTML
-
-**Three Modal Types:**
-
-#### 1. Tag Label Modal ("Manage Tags")
-**Trigger:** Click tag cell in tag list table  
-**Purpose:** Add/remove/edit tags for a specific interval
-
-**Components:**
-- "+ Add Tag" button → Reveals input field
-- Tag list with delete buttons (Material Symbols `delete` icon)
-- Existing tags shown as styled chips (`.tag-list-item`)
-- "Cancel" and "Save Changes" buttons
-
-**Data Flow:**
-```javascript
-// On open
-editingTagIndex = 5;  // Which interval we're editing
-populateExistingTags(5);  // Show current tags
-
-// User adds tag
-addNewTag();  // Appends to array
-
-// On save
-window._timelineTags[5].label = ["Tag1", "Tag2", "Tag3"];
-renderTagList();  // Update table
-```
-
-#### 2. Language Modal
-**Trigger:** Click language cell in tag list table  
-**Purpose:** Toggle language flags for interval
-
-**Components:**
-- Three checkboxes (Cantonese, English, Mandarin)
-- Pre-selected based on current interval
-- "Cancel" and "Save" buttons
-
-**UX:** Checkboxes update `tag.languages` array on save
-
-#### 3. Remarks Modal
-**Trigger:** Click remarks cell (📝 or ➕ icon)  
-**Purpose:** Add/edit free-form text notes
-
-**Components:**
-- Multi-line textarea (6 rows)
-- "Cancel" and "Save" buttons
-
-**UX:** Simple text update, no special formatting
-
-### Modal Behavior
-- **Backdrop click** → Closes modal (via `data-*-close` attribute)
-- **Escape key** → Closes modal
-- **Enter key** in inputs → Submits (where appropriate)
-- **Focus trap** → First input auto-focused on open
-- **Dark mode** → All modals inherit theme colors
-
-## Data Structures
-
-### Tag Object
-```typescript
-interface Tag {
-  start: number;          // Seconds with millisecond precision (e.g., 12.456)
-  end: number;            // Seconds with millisecond precision
-  label: string | string[]; // Single tag or array of tags
-  languages: string[];    // Array of language codes: ["Cantonese", "English", "Mandarin"]
-  remarks: string;        // Free-form text notes
-}
-```
-
-**Storage:** `window._timelineTags: Tag[]`
-
-### Player State
-```typescript
-interface PlayerState {
-  sourceType: 'youtube' | 'html5' | 'none';
-  isPlaying: boolean;
-  current: number;        // Current playback time (seconds)
-  duration: number;       // Total duration (seconds)
-  html5HasVideo: boolean; // Whether HTML5 video element has src
-  ytPlayerAvailable: boolean;  // Whether YouTube player is ready
-  ytReadyState: number | null; // YouTube player state
-}
-```
-
-**Storage:** `window.VideoTagger.player.state`
-
-### Session Data
-```typescript
-interface Session {
-  videoSource: string;    // Filename or YouTube URL
-  vid: string;            // User-provided video identifier
-  tags: Tag[];            // Array of all intervals
-}
-```
-
-**Export Formats:**
-- **JSON**: Full fidelity, includes all metadata
-- **CSV**: Flattened for Excel, languages as 0/1 columns
-
-## Quick Start
-
-This project is a pure static site. Any HTTP file server works for development or deployment.
-
-```bash
-# serve with Python
-python -m http.server 8000
-
-# or with Node (requires npm install -g serve)
-serve .
-```
-
-Then open `http://localhost:8000` (or whichever port you choose) in a modern Chromium-based browser.
-
-### Player Test Harness
-
-When debugging playback issues, click the **Test** button in the bottom-right corner of the home page (admin password required) to launch `test-player.html`. The standalone page provides the simplest possible environment: a native YouTube IFrame API embed and an optional Plyr-wrapped local file loader, letting you confirm playback works before exercising the full tagging UI.
-
-### Using the App
-1. Load a local video/audio file **or** paste a YouTube URL and click **Open**.
-2. Enter a VID (required before export or save).
-3. Use **Mark Start** / **Mark End** buttons or the keyboard (`I` / `O`) to capture intervals.
-4. Add languages, remarks, or adjust labels inline; use the timeline to navigate to any segment.
-5. Export to CSV or save the session JSON when your review is complete.
-
-Keyboard shortcuts are summarised in the in-app help modal (`?` key). The values match the list captured in `requirements.md`.
-
-## Development Notes
-
-- **Static assets** – No build pipeline is required. Simply edit the files in `css/` and `js/` and reload the browser.
-- **Plyr & YouTube** – Plyr is bundled via CDN (`plyr.polyfilled.js`). The YouTube IFrame API script still loads on demand; ad/tracking blockers may emit warnings in the console, but playback remains functional.
-- **Global namespace** – Feature scripts communicate via shared globals on `window` (e.g., `_timelineTags`, `ytPlayer`, `plyrInstance`). The new module namespace (`window.VideoTagger`) is the preferred location for reusable helpers going forward.
-- **Linting/formatting** – The repo does not include tooling configuration; follow the existing code style (2-space indentation, trailing commas avoided).
-- **Testing** – No automated tests exist. Manual verification against the workflow in `requirements.md` is recommended after any behavioural changes.
-
-## Contributing Workflow
-
-1. Fork or branch from `main`.
-2. Make incremental changes (UI, tagging logic, exports, etc.).
-3. Manually test local playback and a sample YouTube link; ensure tagging, summary stats, and exports still behave as expected.
-4. Document noteworthy changes in commit messages or update this README when structure changes.
-
-## Acknowledgements
-
-- [Plyr](https://github.com/sampotts/plyr) – accessible and customisable media player skin.
-- [YouTube IFrame Player API](https://developers.google.com/youtube/iframe_api_reference) – streaming support for public videos.
+Browser-native interval tagging workstation for long-form speech and video analysis. Researchers can ingest YouTube streams or offline video/audio files, capture millisecond-precise segments, annotate each interval with multi-language labels and remarks, and export structured CSV or JSON records without a build step or backend.
 
 ---
 
-For deeper product context, design mocks, and historical requirements, review `requirements.md`. It mirrors the workflow used by reviewers at The Education University of Hong Kong.
+## Executive Summary (Replicate-From-Doc)
+- **Audience**
+  - **Researchers & coders** who annotate long recordings for language studies.
+  - **Facilitators** who need deterministic exports for downstream statistics.
+- **Core Loop**
+  - Load media (offline or YouTube) → default to **audio-only** mode to minimise cognitive load.
+  - Use wired controls (`#play-pause-btn`, `#video-progress`, `#volume-slider`, `Mark Start`, `Mark End`) to scrub and capture intervals.
+  - Review and edit tags in tabular form or via modals, then export/share.
+- **Key Differentiators**
+  - Password-protected audio/video toggle (`ADMIN_PASSWORD = 'ks2.0'`) prevents accidental mode flips during multi-hour reviews.
+  - Unified controller handles both HTML5 media and the YouTube IFrame API through shared helpers (`VideoTagger.player` namespace).
+  - Timeline overlays and context menu disambiguate overlapping intervals with no additional libraries.
+- **Fallback Strategy**
+  - If YouTube API fails to instantiate, the UI remains in audio-first mode with loading cues, and local files still operate.
+  - When media sources disappear (`emptied` event) the app tears down state, clears tags, and resets controls to safe defaults.
+  - All exports fall back to sentinel values (`label: '9999'`, `remarks: '9999'`) to keep downstream CSV ingestion robust.
+
+---
+
+## System Architecture
+
+### Module Map
+| Layer | Purpose | Key Files |
+|-------|---------|-----------|
+| **Shell** | Static SPA scaffolding | `index.html` |
+| **Core Utilities** | Namespace bootstrap, theming, global lifecycle | `js/core/main.js`, `js/core/namespace.js`, `js/core/shortcut.js`, `js/core/shortcut_help.js` |
+| **Media Subsystem** | Player orchestration, shared state, diagnostics | `js/player/state.js`, `js/player/dom.js`, `js/player/audioControls.js`, `js/player/controller.js`, `js/player/timeline.js`, `js/player/youtubeController.js`, `audioControls.js` (legacy alias) |
+| **Tagging Subsystem** | Interval capture, editing, summary, persistence | `js/tagging/tag.js`, `js/tagging/tagsummary.js`, `js/tagging/export.js`, `js/tagging/save.js`, `js/tagging/load.js` |
+| **Styling** | Layout, theming, timeline, modals | `css/*.css` (notably `modern.css`, `tagging.css`, `timeline.css`, `shortcut_help.css`) |
+
+### Runtime Globals
+- `window.VideoTagger`: namespaced buckets (`core`, `player`, `tagging`).
+- `window.mediaMode`: `'audio'` (default) or `'video'`.
+- `window.ytPlayer`: YouTube IFrame instance or `null`.
+- `window.plyrInstance`: wrapper around the `<video>` element for HTML5 playback.
+- `window._timelineTags`: authoritative array of interval records.
+- `window.currentVID`, `window.currentVideoSource`: exported metadata.
+- Dirty tracking via `window.markDirty()` / `window.markSaved()` ensures the browser warns before unload.
+
+### Control Plane Overview
+1. `index.html` declares all DOM elements (hero loader, player surface, controls, modals).
+2. `js/core/main.js` is the orchestrator—on `DOMContentLoaded` it boots the module namespace, applies persisted theme, then calls `initVideo()`, `initTags()`, `initTagSummary()`, `initExport()`, `initSaveLoad()`, and keyboard helpers.
+3. `js/player/controller.js` wires media inputs, hooking HTML5 `<input type="file">` and the YouTube URL button. It keeps the player UI coherent (`showPlayer()`, `primeLocalVideo()`, `setupYouTubeLoading()`), handles scrubbing/volume, and binds keyboard shortcuts to the global media API.
+4. `js/player/audioControls.js` normalises the playback API, mapping either YouTube or HTML5 calls to a consistent control surface (`updateAudioControls('reason')`).
+5. `js/player/timeline.js` draws the ruler ticks, lays out interval bars, renders context menus for overlaps, and shows transient dots when marking starts.
+6. `js/tagging/tag.js` governs the tagging workflow, modelling modals, start/end gatekeeping, per-interval editing, and table rendering.
+7. Export and save modules flatten `_timelineTags` into CSV/JSON, baking in the fallback semantics.
+
+---
+
+## UI & UX Blueprint
+
+### Entry Hero (`#video-hero`)
+- **Purpose**: Provide a binary choice—local upload (`#local-video-input`) vs. streaming (`#youtube-url` + `#load-youtube-btn`).
+- **Transition**: `showApp()` (declared inline in `index.html`) hides the hero, flips `body.player-active`, and reveals the grid layout once metadata events (`loadedmetadata`, `youtube:ready`) fire.
+- **Fallback**: If YouTube iframe never arrives, the hero remains visible and the console logs diagnostics.
+
+### Main Grid (`#video-layout`)
+- **Left Column**
+  - **Player Surface**
+    - HTML5 wrapper (`#html5-wrapper > video#video`) and YouTube mount (`#youtube-container`).
+    - Placeholder text toggled by `applyMediaMode()` (audio vs. video cues).
+  - **Playback Control Bar**
+    - Play/pause button (`#play-pause-btn`) with Material icon, managed by `attachAudioToggle()`.
+    - Scrubber (`#video-progress`) bound to `attachAudioProgressHandlers()` for pointer/touch scrubbing and commit semantics.
+    - Time readout (`#audio-status`) fed by `formatMediaTime()`.
+    - Volume slider (`#volume-slider`) writing to whichever active API is available (`setVolume()` for YouTube, property for HTML5/Plyr).
+  - **Timeline Strip** (`#timeline`)
+    - Drawn via `drawTimelineRuler()`; intervals appended by `updateTimelineMarkers()`.
+    - Overlap interactions spawn `#timeline-context-menu`, enabling explicit tag selection.
+  - **Jump-to-Time** and **Session Metadata** sections supply manual seeking and the required VID field.
+  - **Tag Capture** block: `+ Add Tags` modal button, language pills, remarks textarea, `Mark Start`/`Mark End` gating.
+- **Right Column**
+  - **Tag List Table** (`#tag-list-table`): Start/End cells double as seek triggers; other cells open modals.
+  - **Tag Summary Table** (`#tag-summary-table`): Live frequency view toggled between tags and languages (`summary-mode-btn`).
+  - **Session Actions**: Export, Save, Load, and the audio/video mode toggle button.
+
+### Modal Suite
+- **Add Tags Modal** (`#add-tag-modal`): Pre-loads reusable tag labels, storing them in `pendingTagsFromModal`.
+- **Manage Tags Modal** (`#tag-label-modal`): Edits interval-specific tag arrays.
+- **Language Modal** (`#language-modal`): Toggles Cantonese/English/Mandarin flags via checkboxes.
+- **Remarks Modal** (`#remarks-modal`): Captures rich context per interval.
+- **Admin Modal** (`#admin-modal`): `prompt()` password flow is backed by this modal in markup for future enhancements.
+- **Shortcut Help Modal** (wired by `initShortcutHelp()`): surfaces the key map from `requirements.md` with accessible toggles.
+
+### Accessibility & Theme Choices
+- All interactive elements have ARIA labels (`title`, `aria-label`) and keyboard affordances.
+- Theme uses CSS custom properties (`css/modern.css`) and persists via `localStorage` key `theme-preference`.
+- Buttons adopt large hit areas, consistent Material icons, and high-contrast states for dark/light parity.
+
+---
+
+## Media Subsystem Deep Dive
+
+### Source Ingestion
+- **Local Files** (`setupLocalVideoLoading()` in `js/player/controller.js`)
+  1. File selection clears previous YouTube instances (`destroyYouTubePlayer()`), revokes prior object URLs, and sets the `<video>` `src`.
+  2. Lifecycle listeners (`loadedmetadata`, `canplay`) call `initializePlyrOnVideo()` to hook controls and reveal the app via `showApp()`.
+  3. Fallback: If load errors occur, the handler logs diagnostic info (network state, ready state) to the console.
+- **YouTube Streams** (`setupYouTubeLoading()`)
+  1. URL is regex-parsed for a video ID; invalid inputs raise blocking alerts.
+  2. All HTML5 sources are cleared, placeholder shown, and `createYouTubePlayer(videoId)` is scheduled.
+  3. `global.pendingYouTubeLoad` ensures the player is created once the API is ready (`onYouTubeIframeAPIReady`).
+  4. On success, `defaultOnPlayerReady()` enables tagging controls and re-applies audio mode semantics.
+
+### Play/Pause Wiring
+- `attachAudioToggle()` listens to `#play-pause-btn` clicks and routes them to the active medium:
+  - **YouTube**: uses `getPlayerState()` and `pauseVideo()/playVideo()` with state introspection to keep icon text consistent.
+  - **Plyr/HTML5**: toggles `.paused` or `videoElement.paused` and updates controls.
+- This function also attaches a listener array (`['play','pause','timeupdate', ...]`) on the HTML5 element to keep the UI snapshot fresh.
+- Keyboard handler (`setupKeyboardShortcuts()`) captures the space bar for global toggling when focus is outside inputs.
+
+### Scrubbing & Seeking
+- `attachAudioProgressHandlers()` manages scrubbing semantics:
+  - Maintains `data-scrubbing` state to prevent conflicting updates while the user holds the slider.
+  - `commitSeek(val, reason)` normalises the target time, clamping it to whichever duration (`YouTube`, `Plyr`, or `video`) is authoritative, then calls `seekTo()` / `currentTime =`.
+  - Supports pointer, touch, and keyboard events with discrete handlers for `pointerdown`, `touchstart`, etc.
+- `setupJumpToTime()` accepts HH:MM:SS.mmm, MM:SS.mmm, or numeric seconds and dispatches to the active player.
+
+### Volume Management
+- The volume slider updates the active media via `setVolume()` (0–100 for YouTube, normalised to 0–1 for HTML5/Plyr).
+- On no source, the slider is disabled and reset to 100 to avoid false state impressions.
+
+### Timeline & Context Menu
+- `drawTimelineRuler()` chooses tick intervals dynamically based on duration and container width (>60px spacing).
+- `updateTimelineMarkers(tagList)` sorts tags, enforces a minimum interval width (0.5%), and renders accessible bars with `data-tag-idx` attributes.
+- Click handling:
+  - Direct click on a bar seeks to the start time.
+  - Clicking empty timeline space calculates the approximate time, finds overlapping tags, and either seeks directly (single match) or spawns `#timeline-context-menu` with selection items.
+- Start markers: `showStartDotOnTimeline(startTime)` previews the start point between the start/end click sequence; `removeStartDotFromTimeline()` cleans up after `Mark End` or cancellation.
+
+### Media Mode Governance
+- `applyMediaMode()` (in `js/player/audioControls.js`) is the master switch:
+  - Updates `body.audio-mode-active` / `body.video-mode-active` to drive theming.
+  - Applies `opacity: 0.001` and `pointer-events: none` to the active video container when in audio mode, ensuring playback continues without visual distraction.
+  - Reveals the custom audio control bar only in audio mode; in video mode the expectation is to use inline Plyr/YouTube controls.
+  - For YouTube specifically, the iframe remains in the DOM for audio mode but is visually de-emphasised, avoiding API teardown.
+- Access is gated by `ADMIN_PASSWORD`. `main.js` prompts via `window.prompt()` and toggles `window.mediaMode` before re-applying the mode and refreshing the toggle button text.
+
+### Diagnostics & Logging
+- `player.logPlayerLayout(context)` (from `js/player/dom.js`) dumps a thorough console snapshot: computed styles, bounding boxes, audio control metadata, YouTube/HTML5 diagnostics, and Plyr state. Use this when debugging layout regressions.
+- `updateAudioControls(trigger)` logs whenever a meaningful delta (playback state, current time, duration) occurs, helping trace stale UI states during QA.
+
+---
+
+## Tagging Subsystem
+
+### Tag Data Model
+```typescript
+type TagRecord = {
+  start: number;          // seconds, three decimal places
+  end: number;            // seconds, three decimal places
+  label: string | string[]; // sentinel '9999' if none
+  languages: string[];    // subset of LANGUAGE_OPTIONS
+  remarks: string;        // empty string allowed
+};
+```
+- Stored in `_timelineTags`. `tag.js` always copies/sorts arrays when reading to avoid accidental mutation side-effects.
+- Derived helper `languagesToInitials()` condenses array values to `C:E:M` for tabular display.
+
+### Pre-Tag Setup
+- `initTags()` disables tagging controls until media is ready.
+- `pendingTagsFromModal` caches the selection from the Add Tags modal so repeated intervals can inherit the same labels without retyping.
+- Language pills default to Cantonese and English active (per historical workflow) but can be toggled off; state is encoded in the button class `.active` rather than checkboxes for quick scanning.
+
+### Start/End Workflow
+1. **Mark Start** (`startTagBtn` click or `I` key)
+   - Validates VID presence (`#vid-input`), blocking progress with an alert if missing.
+   - Captures current playback time via `getCurrentTime()`, gating on either YouTube or HTML5 API.
+   - Disables `Mark Start`, enables `Mark End`, locks remarks/language inputs, and shows `timeline-start-dot`.
+2. **Mark End** (`endTagBtn` click or `O` key)
+   - Captures end time and ensures it is ≥ start time.
+   - Constructs the tag object, applying defaults: label(s) from `pendingTagsFromModal` or `'9999'`, languages from active pills, remarks text or empty string.
+   - Pushes to `_timelineTags`, re-enables inputs, clears remarks, resets pills, removes dot, and redraws timeline + summary.
+   - Calls `window.markDirty()` to trigger unload protection.
+3. **Error Handling**
+   - If end time < start time, the workflow aborts gracefully, re-enabling controls and alerting the user.
+
+### Editing & Review
+- Clicking cells in the tag table triggers modals that operate on `editingTagIndex` (bound to the underlying array index).
+- Delete actions include a `confirm()` prompt before splicing the array and refreshing UI artefacts.
+- `renderTagList()` sorts tags on each render to keep chronological order independent of insertion sequence.
+
+### Summaries & Analytics
+- `window.updateTagSummary()` (in `tagsummary.js`) recomputes counts by tag or by language. The toggle persists inside the DOM dataset so the view updates reactively after edits.
+- Timeline is refreshed alongside the summary to keep visual cues aligned.
+
+---
+
+## Persistence & Export
+
+### CSV Export (`initExport()`)
+- Guard clauses ensure tags exist and VID is provided.
+- Each row contains both numeric seconds (`Start (s)`, `End (s)`) and formatted times (`HH:MM:SS.mmm`).
+- Languages are exported as binary columns (Cantonese/English/Mandarin) to simplify pivot tables.
+- Remarks default to `'9999'` when empty so spreadsheets flag missing annotations explicitly.
+- UTF-8 BOM is preprended to avoid Mojibake when opening in Excel.
+
+### JSON Save / Load (`initSaveLoad()`)
+- Save: Serialises the session object and forces download via blob. Marks the document as saved (`markSaved()`).
+- Load: Reads a JSON file, normalises each tag (filters invalid languages, ensures numeric times), repopulates `_timelineTags`, updates UI, and alerts on success.
+- Fallback: Malformed files trigger an alert with the thrown error message; no partial state is applied.
+
+### Session Clearing
+- `video-tagger:clear-session-request` (CustomEvent) resets tagging state when switching sources (local vs. YouTube) to prevent interval leakage.
+- `goHomeBtn` handler in `main.js` uses `resetMediaState('home')` + `clearTaggingSession('home')` to fully revert the interface, including destroying YouTube/Plyr instances and revoking object URLs.
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action | Implementation |
+|-----|--------|----------------|
+| `Space` | Play/Pause | `setupKeyboardShortcuts()` monitors document-level `keydown`. |
+| `I` | Mark Start | Bound to `startTagBtn.click()` through event listeners in `tag.js`. |
+| `O` | Mark End | Same as above for `endTagBtn`. |
+| `← / →` | Seek ±5s | Implemented in `js/core/shortcut.js` (not shown) to call the active media API. |
+| `Alt + ← / →` | Seek ±1s | Fine-grained adjustments. |
+| `Ctrl + ← / →` | Seek ±30s | Coarse adjustments. |
+| `?` | Toggle shortcut help modal | Provided by `initShortcutHelp()`. |
+| `Esc` | Close any modal | Bound via data attributes in modal setup. |
+
+Focus is intentionally suppressed when the user is editing form inputs; shortcuts only fire if `document.activeElement` is not typing (`tag.js` guards this).
+
+---
+
+## Theming, Styling, & Accessibility
+- `css/modern.css` defines root variables for light/dark themes; dark mode is applied by toggling `data-theme="dark"` on `<html>`.
+- `#theme-toggle` and header toggle rely on Material icons to indicate the next mode (sun/moon idiom).
+- Buttons and pills use consistent border-radius and box-shadow to communicate affordance; the timeline uses elevated drop shadows to highlight active bars (`.timeline-interval` hover states).
+- `shortcut_help.css` and `tagsummary.css` unify typography (Inter/Roboto) to match the hero screen for brand consistency.
+
+---
+
+## Engineering Notes & Fallback Decisions
+- **No Bundler**: Everything runs as static assets. This simplifies deployment (copy to any static file server) and debugging (view-source friendly).
+- **Password-Protected Mode Switch**: Chosen to avoid UI drift mid-session; the password `ks2.0` aligns with the institution’s internal code.
+- **Audio-First Design**: The default mode hides video surfaces (`opacity: 0.001`). This reduces bandwidth and emphasises linguistic analysis. Video mode can be enabled when visual cues are required.
+- **Sentinel Values**: `'9999'` is used for empty tags/remarks to stay compatible with legacy scripts that expect mandatory values.
+- **YouTube Resilience**: `pendingYouTubeLoad` tracks deferred player creation. If the API fails, diagnostics are logged and the UI remains responsive for local files.
+- **Object URL Hygiene**: Every local file load revokes the previous `URL.createObjectURL` to avoid gradually leaking memory in Chrome during marathon sessions.
+- **Dirty State Handling**: `beforeunload` warns users if `_timelineTags`, metadata, or VID changed but weren’t saved.
+
+---
+
+## Build, Deployment, & Testing
+- **Local Development**
+  ```bash
+  # Python static server
+  python -m http.server 8000
+
+  # Node alternative (requires `npm install -g serve`)
+  serve .
+  ```
+  Open `http://localhost:8000` in a Chromium-based browser (Chrome, Edge). Safari is partially supported but not officially validated.
+- **Production Deployment**
+  - Upload the contents of the repository to any static hosting provider (e.g., Netlify, GitHub Pages, on-prem HTTP server).
+  - Ensure external CDNs (Plyr JS/CSS, Google Fonts, YouTube IFrame API) are not blocked by network policies.
+- **Smoke Test Checklist**
+  1. Load a local MP4 → confirm hero hides, audio controls enable, timeline draws.
+  2. Paste a YouTube URL → confirm iframe appears after authentication, audio mode still hides video until password toggle.
+  3. Capture at least two tags with overlapping time slices → verify timeline context menu.
+  4. Edit languages/remarks → re-open row to confirm persisted.
+  5. Export CSV → inspect BOM and columns, ensure VID present.
+  6. Save JSON, refresh page, load JSON → confirm state fully restored.
+  7. Toggle video mode with password → ensure audio banner hides, video surface visible.
+- **Diagnostics**
+  - Use browser devtools Console to inspect `[video.js]` logs for playback issues.
+  - `player.logPlayerLayout('context')` can be called manually for DOM snapshots.
+
+---
+
+## File Structure Reference
+```
+Video-Tagger/
+├─ index.html                    # SPA scaffold, inline showApp logic, modal markup
+├─ audioControls.js              # Legacy global shim pointing to player controls
+├─ css/
+│  ├─ main.css                   # Base layout & typography
+│  ├─ modern.css                 # Theme tokens, timeline polish
+│  ├─ tagging.css                # Control column styles
+│  ├─ video.css                  # Player sizing
+│  ├─ tags.css                   # Tag list table elements
+│  ├─ tagsummary.css             # Summary table
+│  ├─ shortcut_help.css          # Shortcut modal styling
+│  └─ modals.css                 # Shared modal design
+├─ js/
+│  ├─ core/
+│  │  ├─ main.js                # App bootstrap, theming, admin toggle, reset logic
+│  │  ├─ namespace.js           # Ensures consistent namespaces on window
+│  │  ├─ shortcut.js            # Keyboard navigation & seeking
+│  │  ├─ shortcut_help.js       # Renders help modal content
+│  │  └─ utils.js               # Misc helpers (if present)
+│  ├─ player/
+│  │  ├─ state.js              # Shared constants (MEDIA_MODE) and state snapshot
+│  │  ├─ dom.js                # DOM query helpers & layout logging
+│  │  ├─ audioControls.js      # Format time, getActiveMediaApi, applyMediaMode
+│  │  ├─ controller.js         # Wire inputs, scrubbing, keyboard hooks, showPlayer
+│  │  ├─ timeline.js           # Ruler drawing, interval overlay, context menus
+│  │  └─ youtubeController.js  # YouTube API bootstrap & polling
+│  └─ tagging/
+│     ├─ tag.js               # Capture loop, modals, table rendering
+│     ├─ tagsummary.js        # Summary table recalculation
+│     ├─ export.js            # CSV generator with BOM
+│     ├─ save.js              # JSON save/load flows
+│     └─ load.js              # (Optional legacy helper if referenced)
+├─ test-player.html             # Minimal playback harness for debugging
+├─ requirements.md              # Historic product brief & shortcut tables
+└─ README.md                    # This document (PRD + technical reference)
+```
+
+---
+
+## Future Enhancements (Backlog Context)
+- Drag-adjust interval boundaries directly on the timeline (requires pointer tracking and collision detection).
+- Tag filtering/search in the right column for quick retrieval on large datasets.
+- Multi-user collaboration with server-backed storage (would require replacing the static architecture).
+- Additional export formats (Excel, XML) or direct integration with analytics pipelines.
+
+---
+
+## Credits & Dependencies
+- **Plyr** (`https://cdn.plyr.io/3.7.8/`) for consistent HTML5 audio/video controls. Currently used passively; custom bar takes over in audio mode.
+- **YouTube IFrame API** (`https://www.youtube.com/iframe_api`) for streaming playback with JS control.
+- **Google Fonts (Roboto, Inter)** and Material Symbols for cohesive typography and icons.
+- Developed for The Education University of Hong Kong’s KeySteps@JC programme.
+
+For historical decisions, UI mockups, and design rationales, cross-reference `requirements.md`.
