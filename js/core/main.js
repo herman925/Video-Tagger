@@ -1,7 +1,6 @@
 // Main application logic, theme switching, initialization
 
 const ADMIN_PASSWORD = 'ks2.0';
-
 let hasUnsavedChanges = false;
 window.markDirty = () => { hasUnsavedChanges = true; };
 window.markSaved = () => { hasUnsavedChanges = false; };
@@ -18,9 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoTaggerNamespace = window.VideoTagger = window.VideoTagger || {};
   videoTaggerNamespace.core = videoTaggerNamespace.core || {};
   const videoTaggerCore = videoTaggerNamespace.core;
-  if (typeof videoTaggerCore.adminUnlocked !== 'boolean') {
-    videoTaggerCore.adminUnlocked = false;
-  }
+  // Media mode setup (audio/video) - default to audio
   window.mediaMode = window.mediaMode || 'audio';
   window.currentVID = window.currentVID || '';
   if (typeof window.applyMediaMode === 'function') {
@@ -29,13 +26,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // Theme toggle logic using data-theme attribute
   const storageKey = 'theme-preference';
   function getColorPreference() {
-    return localStorage.getItem(storageKey) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const stored = localStorage.getItem(storageKey);
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   const theme = { value: getColorPreference() };
   function reflectPreference() {
     document.documentElement.setAttribute('data-theme', theme.value);
     document.body.classList.toggle('dark-theme', theme.value === 'dark');
-    document.querySelector('#theme-toggle')?.setAttribute('aria-label', theme.value);
+    
+    // Update icon based on theme: dark mode shows sun, light mode shows crescent moon
+    const iconText = theme.value === 'dark' ? 'light_mode' : 'dark_mode';
+    const toggleBtn = document.querySelector('#theme-toggle');
+    const toggleBtnHeader = document.querySelector('#theme-toggle-header');
+    
+    if (toggleBtn) {
+      const iconSpan = toggleBtn.querySelector('.material-symbols-outlined');
+      if (iconSpan) iconSpan.textContent = iconText;
+      toggleBtn.setAttribute('aria-label', `Switch to ${theme.value === 'dark' ? 'light' : 'dark'} mode`);
+    }
+    
+    if (toggleBtnHeader) {
+      const iconSpan = toggleBtnHeader.querySelector('.material-symbols-outlined');
+      if (iconSpan) iconSpan.textContent = iconText;
+      toggleBtnHeader.setAttribute('aria-label', `Switch to ${theme.value === 'dark' ? 'light' : 'dark'} mode`);
+    }
   }
   function setPreference() {
     localStorage.setItem(storageKey, theme.value);
@@ -50,30 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
   window.onload = () => {
     reflectPreference();
     document.querySelector('#theme-toggle')?.addEventListener('click', onClick);
+    document.querySelector('#theme-toggle-header')?.addEventListener('click', onClick);
   };
-  // sync with system changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ({matches:isDark}) => {
-    theme.value = isDark ? 'dark' : 'light';
-    setPreference();
-  });
 
-  const testBtn = document.getElementById('player-test-btn');
-  if (testBtn) {
-    testBtn.addEventListener('click', () => {
-      if (videoTaggerCore.adminUnlocked) {
-        window.open('test-player.html', '_blank', 'noopener');
-        return;
-      }
-      const input = window.prompt('Enter the admin password to open the player test view:');
-      if (input === null) return;
-      if (input === ADMIN_PASSWORD) {
-        videoTaggerCore.adminUnlocked = true;
-        window.open('test-player.html', '_blank', 'noopener');
-      } else {
-        window.alert('Incorrect password.');
-      }
-    });
-  }
+  // Test page removed.
 
   // Initialize other components if they exist
   if (typeof initVideo === 'function') initVideo();
@@ -89,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const endTagBtn = document.getElementById('end-tag-btn');
   const tagInput = document.getElementById('tag-input');
   const remarksInput = document.getElementById('tag-remarks-input');
-  const languageCheckboxes = Array.from(document.querySelectorAll('.tag-language-checkbox'));
+  const languageButtons = Array.from(document.querySelectorAll('.tag-language-checkbox'));
   const vidInput = document.getElementById('vid-input');
   const goHomeBtn = document.querySelector('[data-home-trigger]');
 
@@ -97,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (endTagBtn) endTagBtn.disabled = true;
   if (tagInput) tagInput.disabled = true;
   if (remarksInput) remarksInput.disabled = true;
-  languageCheckboxes.forEach(cb => { cb.disabled = true; });
+  languageButtons.forEach(cb => { cb.disabled = true; });
 
   if (vidInput) {
     window.currentVID = vidInput.value.trim();
@@ -107,8 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  languageCheckboxes.forEach(cb => {
-    cb.addEventListener('change', () => {
+  languageButtons.forEach(cb => {
+    cb.addEventListener('click', () => {
       window.markDirty();
     });
   });
@@ -117,30 +112,21 @@ document.addEventListener('DOMContentLoaded', () => {
     remarksInput.addEventListener('input', window.markDirty);
   }
 
-  initAdminControls();
+  // No session lock. Controls are available once a video is loaded.
 
   const controlsColumn = document.getElementById('controls-column');
   const controlsToggleBtn = document.getElementById('controls-collapse-btn');
-  const audioModeToggleBtn = document.getElementById('audio-mode-toggle');
-  if (audioModeToggleBtn) {
-    const updateAudioModeToggle = () => {
-      const isAudio = (window.mediaMode || 'audio') === 'audio';
-      audioModeToggleBtn.textContent = isAudio ? 'Switch to Video Mode' : 'Switch to Audio Mode';
-      audioModeToggleBtn.setAttribute('aria-pressed', String(isAudio));
-      audioModeToggleBtn.setAttribute('aria-label', isAudio ? 'Switch to video mode' : 'Switch to audio mode');
-    };
-    audioModeToggleBtn.addEventListener('click', () => {
-      window.mediaMode = (window.mediaMode === 'audio') ? 'video' : 'audio';
-      if (typeof window.applyMediaMode === 'function') {
-        window.applyMediaMode();
-      }
-      updateAudioModeToggle();
-    });
-    updateAudioModeToggle();
-    window.updateAudioModeToggle = updateAudioModeToggle;
-  } else {
-    window.updateAudioModeToggle = () => {};
-  }
+  // Audio mode toggle - update button text
+  const updateAudioModeToggle = () => {
+    const audioModeToggleBtn = document.getElementById('audio-mode-toggle');
+    if (!audioModeToggleBtn) return;
+    const isAudio = (window.mediaMode || 'audio') === 'audio';
+    audioModeToggleBtn.textContent = isAudio ? 'Switch to Video Mode' : 'Switch to Audio Mode';
+    audioModeToggleBtn.setAttribute('aria-pressed', String(isAudio));
+    audioModeToggleBtn.setAttribute('aria-label', isAudio ? 'Switch to video mode' : 'Switch to audio mode');
+  };
+  updateAudioModeToggle();
+  window.updateAudioModeToggle = updateAudioModeToggle;
 
   if (controlsColumn && controlsToggleBtn) {
     controlsToggleBtn.addEventListener('click', () => {
@@ -227,7 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (elements.audioToggleBtn) {
       elements.audioToggleBtn.disabled = true;
-      elements.audioToggleBtn.textContent = 'Play';
+      const iconSpan = elements.audioToggleBtn.querySelector('.material-symbols-outlined');
+      if (iconSpan) {
+        iconSpan.textContent = 'play_arrow';
+      }
       elements.audioToggleBtn.setAttribute('aria-label', 'Play audio');
     }
     if (elements.audioStatus) {
@@ -292,8 +281,8 @@ document.addEventListener('DOMContentLoaded', () => {
       remarksInput.value = '';
       remarksInput.disabled = true;
     }
-    languageCheckboxes.forEach(cb => {
-      cb.checked = false;
+    languageButtons.forEach(cb => {
+      cb.classList.remove('active');
       cb.disabled = true;
     });
 
@@ -318,6 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.getElementById('sidebar');
       const noVideoMsg = document.getElementById('no-video-message');
       const youtubeInput = document.getElementById('youtube-url');
+      const localVideoInput = document.getElementById('local-video-input');
+      const video = document.getElementById('video');
 
       if (videoLoader) videoLoader.style.display = 'flex';
       if (videoPlayer) videoPlayer.style.display = 'none';
@@ -326,6 +317,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (timeline) timeline.style.display = 'none';
       if (timelineContainer) timelineContainer.style.display = 'none';
       if (sidebar) sidebar.style.display = 'none';
+
+      // Stop and reset video playback
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+        video.src = '';
+        video.load();
+      }
+
+      // Destroy YouTube player if exists
+      if (window.ytPlayer && typeof window.ytPlayer.destroy === 'function') {
+        window.ytPlayer.destroy();
+        window.ytPlayer = null;
+      }
+
+      // Destroy Plyr instance if exists
+      if (window.plyrInstance && typeof window.plyrInstance.destroy === 'function') {
+        window.plyrInstance.destroy();
+        window.plyrInstance = null;
+      }
 
       resetMediaState('home');
       clearTaggingSession('home');
@@ -336,6 +347,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (youtubeInput) {
         youtubeInput.value = '';
+      }
+      if (localVideoInput) {
+        localVideoInput.value = '';
       }
       if (noVideoMsg) {
         noVideoMsg.style.display = '';
@@ -359,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (startTagBtn) startTagBtn.disabled = false;
       if (tagInput) tagInput.disabled = false;
       if (remarksInput) remarksInput.disabled = false;
-      languageCheckboxes.forEach(cb => { cb.disabled = false; });
+      languageButtons.forEach(cb => { cb.disabled = false; });
       // End button remains disabled until start is clicked
     });
      video.addEventListener('emptied', () => {
@@ -368,97 +382,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (endTagBtn) endTagBtn.disabled = true;
         if (tagInput) tagInput.disabled = true;
         if (remarksInput) remarksInput.disabled = true;
-        languageCheckboxes.forEach(cb => {
-          cb.checked = false;
+        languageButtons.forEach(cb => {
+          cb.classList.remove('active');
           cb.disabled = true;
         });
         if (startTagBtn) startTagBtn.textContent = 'Mark Start'; // Reset text
         // Clear tags and timeline? Might be needed depending on desired UX
-        // window._timelineTags = [];
-        // if(window.updateTimelineMarkers) window.updateTimelineMarkers([]);
-        // if(window.updateTagSummary) window.updateTagSummary();
+        window._timelineTags = [];
+        if (window.updateTimelineMarkers) window.updateTimelineMarkers([]);
         // renderTagList(); // Assuming renderTagList is accessible or part of initTags
     });
   }
 
-  function initAdminControls() {
-    const adminBtn = document.getElementById('admin-btn');
-    const modal = document.getElementById('admin-modal');
-    if (!adminBtn || !modal) return;
-
-    const passwordSection = document.getElementById('admin-password-section');
-    const passwordInput = document.getElementById('admin-password-input');
-    const authBtn = document.getElementById('admin-auth-btn');
-    const errorEl = document.getElementById('admin-error');
-    const toggleSection = document.getElementById('admin-toggle-section');
-    const mediaToggle = document.getElementById('media-mode-toggle');
-    const closeButtons = modal.querySelectorAll('[data-admin-close]');
-
-    let isUnlocked = false;
-
-    function closeModal() {
-      modal.hidden = true;
-      if (!isUnlocked && passwordInput) passwordInput.value = '';
-      if (errorEl) errorEl.textContent = '';
-    }
-
-    function openModal() {
-      modal.hidden = false;
-      if (!isUnlocked) {
-        toggleSection.hidden = true;
-        passwordSection.hidden = false;
-        if (passwordInput) {
-          passwordInput.value = '';
-          passwordInput.focus();
+  // Simple password prompt for mode switching
+  const audioModeToggleBtn = document.getElementById('audio-mode-toggle');
+  if (audioModeToggleBtn) {
+    audioModeToggleBtn.addEventListener('click', () => {
+      const password = prompt('Enter password to switch mode:');
+      if (password === ADMIN_PASSWORD) {
+        window.mediaMode = (window.mediaMode === 'audio') ? 'video' : 'audio';
+        if (typeof window.applyMediaMode === 'function') {
+          window.applyMediaMode();
         }
-        mediaToggle.checked = window.mediaMode === 'video';
-        mediaToggle.disabled = true;
-      } else {
-        toggleSection.hidden = false;
-        passwordSection.hidden = true;
-        mediaToggle.checked = window.mediaMode === 'video';
-        mediaToggle.focus();
-        mediaToggle.disabled = false;
-      }
-    }
-
-    adminBtn.addEventListener('click', openModal);
-    closeButtons.forEach(btn => btn.addEventListener('click', closeModal));
-
-    modal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeModal();
-      }
-    });
-
-    authBtn.addEventListener('click', () => {
-      if (!passwordInput) return;
-      if (passwordInput.value === ADMIN_PASSWORD) {
-        isUnlocked = true;
-        videoTaggerCore.adminUnlocked = true;
-        passwordSection.hidden = true;
-        toggleSection.hidden = false;
-        errorEl.textContent = '';
-        mediaToggle.checked = window.mediaMode === 'video';
-        mediaToggle.focus();
-        mediaToggle.disabled = false;
-      } else {
-        errorEl.textContent = 'Incorrect password.';
-        passwordInput.focus();
-        passwordInput.select();
-      }
-    });
-
-    mediaToggle.addEventListener('change', () => {
-      if (!isUnlocked) {
-        errorEl.textContent = 'Enter the admin password first.';
-        mediaToggle.checked = window.mediaMode === 'video';
-        return;
-      }
-      window.mediaMode = mediaToggle.checked ? 'video' : 'audio';
-      if (typeof window.applyMediaMode === 'function') {
-        window.applyMediaMode();
+        if (typeof window.updateAudioModeToggle === 'function') {
+          window.updateAudioModeToggle();
+        }
+      } else if (password !== null) {
+        alert('Incorrect password.');
       }
     });
   }

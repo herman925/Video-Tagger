@@ -38,16 +38,12 @@
     languageCheckboxes.forEach(cb => cb.disabled = false);
 
     const elements = player.getMediaElements();
-    if (typeof player.applyMediaMode === 'function') {
-      global.mediaMode = MEDIA_MODE.VIDEO;
-      player.applyMediaMode();
-    }
+    // Don't override mediaMode - let it stay at default (audio)
     if (elements.youtubePlaceholder) {
       elements.youtubePlaceholder.style.display = 'none';
     }
     if (elements.youtubeContainer) {
       elements.youtubeContainer.hidden = false;
-      elements.youtubeContainer.removeAttribute('hidden');
       elements.youtubeContainer.style.opacity = '';
       elements.youtubeContainer.style.pointerEvents = '';
       elements.youtubeContainer.style.display = '';
@@ -55,14 +51,24 @@
     }
     document.body.classList.add('youtube-mode');
 
-    const ytDuration = event?.target && typeof event.target.getDuration === 'function' ? event.target.getDuration() : null;
-    const ytCurrent = event?.target && typeof event.target.getCurrentTime === 'function' ? event.target.getCurrentTime() : null;
+    const ytDuration = Number.isFinite(global.ytPlayer.getDuration()) ? global.ytPlayer.getDuration() : 0;
+    const ytCurrent = Number.isFinite(global.ytPlayer.getCurrentTime()) ? global.ytPlayer.getCurrentTime() : 0;
     console.debug('[video.js] yt:onReady snapshot', { duration: ytDuration, currentTime: ytCurrent });
+    
+    // Apply media mode after YouTube player is ready (default to audio mode)
+    if (typeof global.applyMediaMode === 'function') {
+      global.applyMediaMode();
+    }
+    
+    // Update button text AFTER applying mode
+    if (typeof global.updateAudioModeToggle === 'function') {
+      global.updateAudioModeToggle();
+    }
+    
     player.updateAudioControls('yt:onReady');
     player.drawTimelineRuler?.();
     player.logPlayerLayout?.('onPlayerReady');
   }
-
   function defaultOnPlayerStateChange(event) {
     const stateLabels = {
       [-1]: 'unstarted',

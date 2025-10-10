@@ -41,8 +41,16 @@ function buildSummaryData(tags, mode) {
         counts.set(language, (counts.get(language) || 0) + 1);
       });
     } else {
-      const label = (tag.label && tag.label.trim()) ? tag.label.trim() : '9999';
-      counts.set(label, (counts.get(label) || 0) + 1);
+      // Handle array of labels or single label
+      const labels = Array.isArray(tag.label) ? tag.label.filter(l => l && l !== '9999') : (tag.label && tag.label.trim && tag.label.trim() !== '9999' ? [tag.label.trim()] : []);
+      
+      if (labels.length === 0) {
+        counts.set('9999', (counts.get('9999') || 0) + 1);
+      } else {
+        labels.forEach(label => {
+          counts.set(label, (counts.get(label) || 0) + 1);
+        });
+      }
     }
   });
 
@@ -100,4 +108,3 @@ function initTagSummary() {
 }
 
 window.updateTagSummary = updateTagSummary;
-document.addEventListener('DOMContentLoaded', initTagSummary);

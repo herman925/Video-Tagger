@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Edit Language(s)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1173d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="fixed inset-0 bg-black/30 dark:bg-black/50 flex items-center justify-center p-4">
+<div class="bg-background-light dark:bg-background-dark rounded-xl shadow-2xl w-full max-w-md">
+<div class="p-6 border-b border-background-light-darker dark:border-background-dark-lighter">
+<h2 class="text-xl font-bold text-gray-900 dark:text-white">Edit Language(s)</h2>
+</div>
+<div class="p-6 space-y-4">
+<fieldset>
+<legend class="sr-only">Languages</legend>
+<div class="space-y-3">
+<label class="flex items-center justify-between p-4 rounded-lg bg-primary/10 dark:bg-primary/20 cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-white transition-colors duration-200" for="cantonese">
+<span class="font-medium text-gray-800 dark:text-gray-200">Cantonese</span>
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark" id="cantonese" name="language" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-4 rounded-lg bg-primary/10 dark:bg-primary/20 cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-white transition-colors duration-200" for="english">
+<span class="font-medium text-gray-800 dark:text-gray-200">English</span>
+<input checked="" class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark" id="english" name="language" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-4 rounded-lg bg-primary/10 dark:bg-primary/20 cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-white transition-colors duration-200" for="mandarin">
+<span class="font-medium text-gray-800 dark:text-gray-200">Mandarin</span>
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark" id="mandarin" name="language" type="checkbox"/>
+</label>
+</div>
+</fieldset>
+</div>
+<div class="flex justify-end gap-4 p-6 bg-background-light/50 dark:bg-background-dark/50 border-t border-background-light-darker dark:border-background-dark-lighter">
+<button class="px-6 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 bg-background-light dark:bg-background-dark ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors duration-200" type="button">
+                    Cancel
+                </button>
+<button class="px-6 py-2 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors duration-200" type="submit">
+                    Save
+                </button>
+</div>
+</div>
+</div>
+
+
+</body></html>

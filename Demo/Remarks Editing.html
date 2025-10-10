@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Edit Remarks</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1173d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#18232f",
+                        "border-light": "#e0e7f0",
+                        "border-dark": "#2d3e4f",
+                        "text-primary-light": "#101922",
+                        "text-primary-dark": "#f6f7f8",
+                        "text-secondary-light": "#586e85",
+                        "text-secondary-dark": "#a0b3c6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display flex items-center justify-center min-h-screen">
+<div aria-hidden="true" class="fixed inset-0 bg-black/30"></div>
+<div class="relative w-full max-w-md mx-auto bg-surface-light dark:bg-surface-dark rounded-xl shadow-2xl">
+<div class="p-6 sm:p-8">
+<h2 class="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Edit Remarks</h2>
+<p class="mt-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">Modify the notes for this tag. Your changes will be saved upon confirmation.</p>
+<div class="mt-6">
+<label class="sr-only" for="remarks">Remarks</label>
+<textarea class="w-full p-4 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out resize-none" id="remarks" name="remarks" placeholder="Enter your remarks here..." rows="6"></textarea>
+</div>
+<div class="mt-8 flex justify-end space-x-4">
+<button class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors duration-150" type="button">
+                    Cancel
+                </button>
+<button class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors duration-150" type="button">
+                    Save
+                </button>
+</div>
+</div>
+</div>
+
+</body></html>

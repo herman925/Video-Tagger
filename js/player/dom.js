@@ -16,10 +16,10 @@
     youtubePlaceholder: document.getElementById('youtube-placeholder'),
     youtubeContainer: document.getElementById('youtube-container'),
     video: document.getElementById('video'),
-    audioToggleBtn: document.getElementById('audio-toggle-btn'),
+    audioToggleBtn: document.getElementById('play-pause-btn'),
     audioStatus: document.getElementById('audio-status'),
-    audioProgress: document.getElementById('audio-progress'),
-    audioVolume: document.getElementById('audio-volume'),
+    audioProgress: document.getElementById('video-progress'),
+    audioVolume: document.getElementById('volume-slider'),
     audioBanner: document.getElementById('audio-mode-banner'),
     timeline: document.getElementById('timeline'),
     controlsColumn: document.getElementById('controls-column')

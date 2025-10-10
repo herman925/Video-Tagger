@@ -1,0 +1,227 @@
+/* Modal Base Styles */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal[hidden] {
+  display: none !important;
+}
+
+.modal:not([hidden]) {
+  display: flex !important;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-dialog {
+  position: relative;
+  z-index: 10000;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.modal-header h3,
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #111);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* kbd styling for shortcuts */
+.kbd {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  background: var(--bg-secondary, #f3f4f6);
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 4px;
+  color: var(--text-primary, #111);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Tag list item styling */
+.tag-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 8px;
+}
+
+.tag-list-item span {
+  color: var(--text-primary, #111);
+  font-size: 14px;
+}
+
+.tag-list-item button {
+  padding: 4px;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.tag-list-item button:hover {
+  color: #dc2626;
+}
+
+.tag-list-item button .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* Dark mode */
+[data-theme="dark"] .modal-content {
+  background: var(--bg-primary, #1a1a1a);
+}
+
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+  border-color: var(--border-color, #333);
+}
+
+[data-theme="dark"] .kbd {
+  background: var(--bg-secondary, #2a2a2a);
+  border-color: var(--border-color, #444);
+  color: var(--text-primary, #fff);
+}
+
+[data-theme="dark"] .tag-list-item {
+  background: var(--bg-secondary, #1f2937);
+}
+
+[data-theme="dark"] .tag-list-item button {
+  color: var(--text-secondary, #9ca3af);
+}
+
+[data-theme="dark"] .tag-list-item button:hover {
+  color: #ef4444;
+}
+
+/* Utility classes to reduce inline styles */
+.modal-max-width-500 {
+  max-width: 500px;
+}
+
+.modal-max-width-600 {
+  max-width: 600px;
+}
+
+.modal-section-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-primary, #111);
+}
+
+.modal-section-spacing {
+  margin-bottom: 24px;
+}
+
+.modal-divider {
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  margin: 24px 0;
+}
+
+.modal-subtitle {
+  margin-bottom: 24px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.modal-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary, #111);
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+.input-hidden {
+  display: none;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
+
+.fw-500 {
+  font-weight: 500;
+}
+
+[data-theme="dark"] .modal-section-label,
+[data-theme="dark"] .modal-section-title {
+  color: var(--text-primary, #fff);
+}
+
+[data-theme="dark"] .modal-subtitle {
+  color: var(--text-secondary, #9ca3af);
+}
+
+[data-theme="dark"] .modal-divider {
+  border-color: var(--border-color, #374151);
+}

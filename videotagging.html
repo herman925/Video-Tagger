@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Tagger</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231173d4' d='M12 2.5l-8.5 15H20.5L12 2.5zM12 6.34L17.66 16H6.34L12 6.34z'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/tagging.css">
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="app-brand">
+        <span class="material-symbols-outlined brand-icon">movie</span>
+        <h1 class="brand-title">Video Tagger</h1>
+      </div>
+      <div class="app-actions">
+        <a href="index.html" class="icon-btn" title="Home">
+          <span class="material-symbols-outlined">home</span>
+        </a>
+        <button class="icon-btn" type="button" title="Keyboard Help">
+          <span class="material-symbols-outlined">help</span>
+        </button>
+        <button class="icon-btn" id="theme-toggle" type="button" title="Toggle theme">
+          <span class="material-symbols-outlined">light_mode</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="tagging-grid">
+      <div class="left-column">
+        <!-- Video Player -->
+        <div id="video-player" class="video-player">
+          <div class="player-placeholder" aria-hidden="true">
+            <span class="material-symbols-outlined">play_circle</span>
+            <p>Loading video…</p>
+          </div>
+          <div id="html5-wrapper">
+            <video id="video" width="100%">
+              <source src="" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <div id="youtube-container" hidden></div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="playback-controls">
+          <button class="play-btn" id="play-pause-btn" type="button" aria-label="Play/Pause">
+            <span class="material-symbols-outlined">play_arrow</span>
+          </button>
+          <div class="progress-container">
+            <input type="range" id="video-progress" class="progress-bar" min="0" max="100" value="0" step="0.1" aria-label="Video progress">
+          </div>
+          <div class="volume-control">
+            <span class="material-symbols-outlined">volume_up</span>
+            <input type="range" id="volume-slider" class="volume-bar" min="0" max="100" value="100" aria-label="Volume">
+          </div>
+        </div>
+
+        <!-- Timeline Strip -->
+        <div id="timeline" class="timeline-strip"></div>
+
+        <!-- Jump to Time -->
+        <div class="control-section">
+          <h3 class="section-title">Jump to Time</h3>
+          <div class="jump-controls">
+            <input type="text" id="jump-input" class="form-input" placeholder="HH:MM:SS.mmm">
+            <button id="jump-btn" class="btn-primary">Go</button>
+          </div>
+        </div>
+
+        <!-- Session Metadata -->
+        <div class="control-section">
+          <h3 class="section-title">Session Metadata</h3>
+          <label class="form-label">VID <span class="required">*</span></label>
+          <input type="text" id="vid-input" class="form-input" required>
+        </div>
+
+        <!-- Add Tag -->
+        <div class="control-section">
+          <h3 class="section-title">Add Tag</h3>
+          <input type="text" id="tag-input" class="form-input" placeholder="Tag label (optional)">
+          
+          <div class="language-selector">
+            <div class="language-pills">
+              <button class="lang-pill active" data-lang="Cantonese">Cantonese</button>
+              <button class="lang-pill active" data-lang="English">English</button>
+              <button class="lang-pill" data-lang="Mandarin">Mandarin</button>
+            </div>
+          </div>
+
+          <textarea id="tag-remarks-input" class="form-textarea" placeholder="Remarks (optional)" rows="3"></textarea>
+
+          <div class="mark-buttons">
+            <button id="start-tag-btn" class="btn-primary">Mark Start</button>
+            <button id="end-tag-btn" class="btn-neutral">Mark End</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Tables + Actions -->
+      <div class="right-column">
+        <!-- Tag List -->
+        <div class="table-section">
+          <h3 class="section-title">Tag List</h3>
+          <div class="table-wrapper">
+            <table id="tag-list-table" class="data-table">
+              <thead>
+                <tr>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Lang</th>
+                  <th>Tag</th>
+                  <th>Remarks</th>
+                  <th>Del</th>
+                </tr>
+              </thead>
+              <tbody id="tag-list-body">
+                <!-- Tag rows will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tag Summary -->
+        <div class="table-section">
+          <div class="summary-header">
+            <h3 class="section-title">Tag Summary</h3>
+            <div class="summary-toggle">
+              <button class="toggle-btn active" data-mode="tag">By Tag</button>
+              <button class="toggle-btn" data-mode="language">By Lang</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="tag-summary-table" class="data-table">
+              <thead>
+                <tr>
+                  <th>Tag</th>
+                  <th>Frequency</th>
+                </tr>
+              </thead>
+              <tbody id="tag-summary-body">
+                <!-- Summary rows will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Session Actions -->
+        <div class="actions-section">
+          <h3 class="section-title">Session Actions</h3>
+          <div class="action-buttons">
+            <button id="export-btn" class="btn-outline">Export</button>
+            <button id="save-btn" class="btn-outline">Save</button>
+            <button id="load-btn" class="btn-outline">Load</button>
+            <button id="audio-mode-toggle" class="btn-outline">Switch to Audio Mode</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/core/main.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  
+  <script>
+    // Initialize video from sessionStorage
+    function extractYouTubeId(url) {
+      const u = (url || '').trim();
+      if (!u) return null;
+      // Support many shapes
+      const patterns = [
+        /[?&]v=([\w-]{11})/,            // watch?v=
+        /youtu\.be\/([\w-]{11})/,      // youtu.be/
+        /embed\/([\w-]{11})/,          // embed/
+        /^([\w-]{11})$/                 // raw id
+      ];
+      for (const re of patterns) {
+        const m = u.match(re);
+        if (m) return m[1];
+      }
+      return null;
+    }
+
+    function createYouTube(containerId, videoId) {
+      const player = new YT.Player(containerId, {
+        width: '100%',
+        height: '100%',
+        videoId,
+        playerVars: { playsinline: 1, modestbranding: 1, rel: 0, controls: 1 },
+        events: {
+          onReady: () => {
+            const ph = document.querySelector('#video-player .player-placeholder');
+            if (ph) ph.setAttribute('hidden', '');
+            console.log('[videotagging] YouTube ready:', videoId);
+          }
+        }
+      });
+      return player;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const videoSource = sessionStorage.getItem('videoSource');
+      const videoElement = document.getElementById('video');
+      const html5Wrapper = document.getElementById('html5-wrapper');
+      const ytContainer = document.getElementById('youtube-container');
+
+      if (videoSource === 'youtube') {
+        const youtubeUrl = sessionStorage.getItem('youtubeUrl') || '';
+        const videoId = extractYouTubeId(youtubeUrl);
+        if (videoId) {
+          html5Wrapper.style.display = 'none';
+          ytContainer.removeAttribute('hidden');
+          // If API ready, create immediately; otherwise wait
+          function initYT() {
+            try { window.ytPlayer?.destroy?.(); } catch (_) {}
+            window.ytPlayer = createYouTube('youtube-container', videoId);
+          }
+          if (window.YT && window.YT.Player) initYT();
+          else {
+            window.onYouTubeIframeAPIReady = initYT;
+          }
+        } else {
+          console.warn('[videotagging] Could not extract YouTube ID from URL:', youtubeUrl);
+        }
+      } else if (videoSource === 'local') {
+        const fileUrl = sessionStorage.getItem('videoFileUrl');
+        const fileName = sessionStorage.getItem('videoFileName');
+        if (fileUrl && videoElement) {
+          videoElement.src = fileUrl;
+          ytContainer.setAttribute('hidden', '');
+          html5Wrapper.style.display = 'block';
+          if (typeof Plyr !== 'undefined') {
+            try {
+              window.plyrInstance?.destroy?.();
+            } catch (_) {}
+            window.plyrInstance = new Plyr(videoElement, {
+              controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen']
+            });
+          }
+          // Hide placeholder after metadata loads
+          const ph = document.querySelector('#video-player .player-placeholder');
+          const hidePh = () => { if (ph) ph.setAttribute('hidden', ''); };
+          videoElement.addEventListener('loadeddata', hidePh, { once: true });
+          videoElement.addEventListener('loadedmetadata', hidePh, { once: true });
+          console.log('[videotagging] Local video set:', fileName, fileUrl);
+        } else {
+          console.warn('[videotagging] No local fileUrl found in sessionStorage');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

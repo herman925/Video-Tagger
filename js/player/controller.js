@@ -216,14 +216,18 @@
   }
 
   function destroyYouTubePlayer() {
+    // Stop YouTube polling immediately
+    if (global._ytTimeInterval) {
+      clearInterval(global._ytTimeInterval);
+      global._ytTimeInterval = null;
+      console.log('[video.js] Cleared YouTube polling interval');
+    }
+    
     if (global.ytPlayer && typeof global.ytPlayer.destroy === 'function') {
       global.ytPlayer.destroy();
     }
     global.ytPlayer = null;
-    if (global._ytTimeInterval) {
-      clearInterval(global._ytTimeInterval);
-      global._ytTimeInterval = null;
-    }
+    
     player.logPlayerLayout('localLoad:destroyedYouTube');
   }
 
@@ -247,6 +251,7 @@
     }
     if (html5Wrapper) {
       html5Wrapper.hidden = false;
+      html5Wrapper.style.display = 'block';
     }
     if (global.plyrInstance) {
       try {
@@ -258,23 +263,52 @@
     }
 
     if (videoElement) {
-      videoElement.style.display = '';
+      videoElement.style.display = 'block';
+      videoElement.style.width = '100%';
+      videoElement.style.height = 'auto';
+      videoElement.controls = false; // We use custom controls
     }
 
     resetObjectUrl();
     const objectUrl = URL.createObjectURL(file);
     global._currentObjectUrl = objectUrl;
+    
+    // Remove source element and set directly on video
     const sourceEl = videoElement?.querySelector('source');
     if (sourceEl) {
-      sourceEl.src = objectUrl;
+      sourceEl.remove();
     }
+    
     if (videoElement) {
       videoElement.src = objectUrl;
+      videoElement.type = file.type || 'video/mp4';
+      videoElement.load();
+      
+      console.info('[video.js] Local video source set and load() called.', {
+        objectUrl: objectUrl,
+        videoSrc: videoElement.src,
+        fileType: file.type,
+        fileName: file.name,
+        fileSize: file.size
+      });
+      
+      // Add error handler
+      videoElement.onerror = (e) => {
+        console.error('[video.js] Video load error:', {
+          error: e,
+          videoError: videoElement.error,
+          src: videoElement.src,
+          networkState: videoElement.networkState,
+          readyState: videoElement.readyState
+        });
+      };
+      
+      // Add loaded handlers for debugging
+      videoElement.onloadstart = () => console.log('[video.js] Video loadstart');
+      videoElement.onloadeddata = () => console.log('[video.js] Video loadeddata');
+      videoElement.oncanplay = () => console.log('[video.js] Video canplay');
+      videoElement.oncanplaythrough = () => console.log('[video.js] Video canplaythrough');
     }
-    videoElement?.load();
-    console.info('[video.js] Local video source set and load() called.', {
-      objectUrl: sourceEl ? sourceEl.src : videoElement?.currentSrc
-    });
 
     player.updateAudioControls('localLoad:sourceAssigned');
     player.logPlayerLayout('localLoad:sourceAssigned');
@@ -282,52 +316,83 @@
 
   function initializePlyrOnVideo(videoElement) {
     if (!videoElement) return;
-    videoElement.oncanplay = () => {
-      if (!global.plyrInstance) {
-        try {
-          global.plyrInstance = new Plyr(videoElement, {
-            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen']
-          });
-          const plyrEvents = ['ready', 'play', 'pause', 'timeupdate', 'seeking', 'seeked', 'ended', 'loadedmetadata', 'durationchange', 'error'];
-          const logEvent = (event) => {
-            const details = {
-              type: event?.type,
-              currentTime: Number.isFinite(global.plyrInstance?.currentTime) ? global.plyrInstance.currentTime : null,
-              duration: Number.isFinite(global.plyrInstance?.duration) ? global.plyrInstance.duration : null
-            };
-            if (event?.type === 'error') console.error('[video.js] plyr:event', details);
-            else console.debug('[video.js] plyr:event', details);
-            player.updateAudioControls(`plyr:${event?.type || 'event'}`);
-          };
-          plyrEvents.forEach(evtName => {
-            try {
-              global.plyrInstance.on(evtName, logEvent);
-            } catch (err) {
-              console.warn('[video.js] Failed to attach Plyr listener', { evtName, err });
-            }
-          });
-          showPlayer();
-          player.logPlayerLayout('localLoad:plyrReady');
-          player.updateAudioControls('plyr:initialized');
-        } catch (error) {
-          console.error('[video.js] Error initializing Plyr:', error);
-        }
+    
+    // Don't use Plyr - use native HTML5 video with custom controls
+    videoElement.controls = false; // Disable native controls, use custom ones
+    
+    videoElement.addEventListener('loadedmetadata', () => {
+      console.log('[video.js] Video metadata loaded, duration:', videoElement.duration);
+      
+      // Call showApp to reveal the player interface
+      if (typeof global.showApp === 'function') {
+        global.showApp();
+      } else {
+        showPlayer();
       }
-      videoElement.oncanplay = null;
-    };
+      
+      player.logPlayerLayout('localLoad:videoReady');
+      player.updateAudioControls('video:initialized');
+      
+      // Apply media mode (audio by default)
+      if (typeof player.applyMediaMode === 'function') {
+        player.applyMediaMode();
+      }
+      
+      // Update button text AFTER applying mode
+      if (typeof global.updateAudioModeToggle === 'function') {
+        global.updateAudioModeToggle();
+      }
+      
+      // Enable tagging controls
+      const startTagBtn = document.getElementById('start-tag-btn');
+      const tagInput = document.getElementById('tag-input');
+      const remarksInput = document.getElementById('tag-remarks-input');
+      const languageButtons = document.querySelectorAll('.tag-language-checkbox');
+      if (startTagBtn) startTagBtn.disabled = false;
+      if (tagInput) tagInput.disabled = false;
+      if (remarksInput) remarksInput.disabled = false;
+      languageButtons.forEach(btn => { btn.disabled = false; });
+      
+      // Draw timeline
+      if (typeof player.drawTimelineRuler === 'function') {
+        player.drawTimelineRuler();
+      }
+    }, { once: true });
+    
+    // Update controls frequently during playback
+    videoElement.addEventListener('timeupdate', () => {
+      player.updateAudioControls('video:timeupdate');
+    });
+    
+    videoElement.addEventListener('play', () => {
+      player.updateAudioControls('video:play');
+    });
+    
+    videoElement.addEventListener('pause', () => {
+      player.updateAudioControls('video:pause');
+    });
+    
+    videoElement.addEventListener('ended', () => {
+      player.updateAudioControls('video:ended');
+    });
   }
 
   function setupLocalVideoLoading(videoElement) {
-    const loadLocalBtn = document.getElementById('load-local-btn');
     const localVideoInput = document.getElementById('local-video-input');
-    if (!loadLocalBtn || !localVideoInput || !videoElement) return;
-
-    loadLocalBtn.addEventListener('click', () => {
-      localVideoInput.value = '';
-      localVideoInput.click();
+    
+    console.log('[video.js] setupLocalVideoLoading called', {
+      hasInput: !!localVideoInput,
+      hasVideoElement: !!videoElement
     });
+    
+    if (!localVideoInput || !videoElement) {
+      console.error('[video.js] setupLocalVideoLoading missing elements!');
+      return;
+    }
 
+    console.log('[video.js] Adding change listener to local-video-input');
     localVideoInput.addEventListener('change', (e) => {
+      console.log('[video.js] *** CHANGE EVENT FIRED ***');
       const file = e.target.files[0];
       if (!file) {
         console.debug('[video.js] Local file selection cleared.');
@@ -358,10 +423,7 @@
       if (noVideoMsg) noVideoMsg.style.display = 'none';
       global.currentVideoSource = file.name;
       document.body.classList.remove('youtube-mode');
-      global.mediaMode = MEDIA_MODE.VIDEO;
-      if (typeof window.updateAudioModeToggle === 'function') {
-        window.updateAudioModeToggle();
-      }
+      // Don't override mediaMode - let it stay at default (audio)
       const { youtubeContainer, youtubePlaceholder } = player.getMediaElements();
       if (youtubeContainer) {
         youtubeContainer.innerHTML = '';
@@ -434,15 +496,17 @@
       global.currentVideoSource = ytUrl;
       if (noVideoMsg) noVideoMsg.style.display = 'none';
 
-    global.mediaMode = MEDIA_MODE.VIDEO;
-    if (typeof window.updateAudioModeToggle === 'function') {
-      window.updateAudioModeToggle();
-    }
+    // Don't override mediaMode - let it stay at default (audio)
     player.updateAudioControls('youtube:load:init');
 
       player.logPlayerLayout(`loadYoutubeBtn:${videoId || 'pending'}`);
       if (typeof player.applyMediaMode === 'function') {
         player.applyMediaMode();
+      }
+      
+      // Update button text AFTER applying mode
+      if (typeof global.updateAudioModeToggle === 'function') {
+        global.updateAudioModeToggle();
       }
       if (audioControlBar && global.mediaMode === MEDIA_MODE.AUDIO) {
         audioControlBar.hidden = false;
@@ -538,8 +602,11 @@
   }
 
   function initVideo() {
+    console.log('[video.js] ===== initVideo() called =====');
     const elements = player.getMediaElements();
     const videoElement = elements.video;
+    
+    console.log('[video.js] Video element:', videoElement);
 
     attachAudioToggle(videoElement);
     attachAudioProgressHandlers(elements.audioProgress, elements.audioVolume, videoElement);

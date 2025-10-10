@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="favicon.ico" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231173d4' d='M12 2.5l-8.5 15H20.5L12 2.5zM12 6.34L17.66 16H6.34L12 6.34z'/%3E%3C/svg%3E" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Tagger App</title>
@@ -9,207 +9,213 @@
   <!-- Plyr CSS -->
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/tagging.css">
   <link rel="stylesheet" href="css/video.css">
   <link rel="stylesheet" href="css/modern.css">
   <link rel="stylesheet" href="css/tags.css">
   <link rel="stylesheet" href="css/tagsummary.css">
   <link rel="stylesheet" href="css/shortcut_help.css">
-  <!-- Plyr JS (add before your scripts) -->
+  <link rel="stylesheet" href="css/modals.css">
+  <!-- Demo alignment: Inter font and Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
 </head>
-<body>  <div id="app-container">
+<body>
+  <!-- Header matching Demo/Home.html exactly -->
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="app-brand">
+        <span class="material-symbols-outlined brand-icon">movie</span>
+        <h1 class="brand-title">Video Tagger</h1>
+      </div>
+      <div class="app-actions">
+        <button class="icon-btn" type="button" title="Home" data-home-trigger>
+          <span class="material-symbols-outlined">home</span>
+        </button>
+        <button class="icon-btn" type="button" title="Keyboard Help">
+          <span class="material-symbols-outlined">help</span>
+        </button>
+        <button class="icon-btn" id="theme-toggle-header" type="button" title="Toggle theme">
+          <span class="material-symbols-outlined">light_mode</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <div id="app-container">
 
     <section id="video-section" class="panel">
-      <div id="video-hero" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; position: relative;">        <!-- Hero Theme Toggle -->        <div id="theme-toggle-hero" class="theme-toggle-container">
-          <button class="theme-toggle" id="theme-toggle" title="Toggles light & dark" aria-label="auto" aria-live="polite">
-            <svg class="sun-and-moon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24">
-              <mask class="moon" id="moon-mask">
-                <rect x="0" y="0" width="100%" height="100%" fill="white" />
-                <circle cx="24" cy="10" r="6" fill="black" />
-              </mask>
-              <circle class="sun" cx="12" cy="12" r="6" mask="url(#moon-mask)" fill="currentColor" />
-              <g class="sun-beams" stroke="currentColor">
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </g>
-            </svg>
-          </button>
-          <div class="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
-          <button id="admin-btn" class="admin-btn" title="Open admin controls">Admin</button>
-        </div>
+      <div id="video-hero" class="landing-hero">
 
-        <h1 style="font-size:2.2em; margin-bottom: 32px; color:#3366cc;">Video Tagger</h1>
-        <div style="display: flex; gap: 24px; margin-bottom: 24px;">
-          <button id="load-local-btn" style="font-size:1.3em; width: 200px; padding: 18px 10px;">Load Local Video</button>
-          <span style="font-size:1.2em; color:#888; align-self:center;">or</span>
-          <input type="text" id="youtube-url" placeholder="YouTube URL" style="width: 210px; font-size:1.1em; padding: 14px 16px;">
-          <button id="load-youtube-btn" style="font-size:1.3em; padding: 18px 40px;">Open</button>
-        </div>
-        <div id="no-video-message" style="color: #888; font-size:1.15em;">Please load a local video file or enter a YouTube link.</div>
-      </div>
-      <div id="video-layout">
-        <div id="player-column">
-          <div id="video-player" style="display: none;">
-            <div id="audio-only-placeholder" class="media-placeholder" aria-live="polite">No Video</div>
-            <div id="audio-control-bar" class="audio-control-bar" hidden>
-              <button id="audio-toggle-btn" class="audio-toggle-btn" type="button" aria-label="Play audio">Play</button>
-              <input type="range" id="audio-progress" min="0" max="0" value="0" step="0.1" aria-label="Seek audio position">
-              <span id="audio-status" class="audio-status" aria-live="polite">00:00 / 00:00</span>
-              <label for="audio-volume" class="audio-volume-label">Volume</label>
-              <input type="range" id="audio-volume" min="0" max="100" value="100" step="1" aria-label="Audio volume">
-            </div>
-            <div id="media-content">
-              <div id="audio-mode-banner" class="audio-mode-banner" aria-hidden="true">
-                Audio-only mode active. The video surface is minimised; playback is controlled via the audio bar.
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1 class="hero-title">Video Tagger</h1>
+            <p class="hero-subtitle">Upload a local video or provide a YouTube link to start tagging intervals effortlessly.</p>
+          </div>
+          <div class="hero-card">
+            <div class="hero-field">
+              <label class="hero-label" for="local-video-input">Load Local Video</label>
+              <div class="file-input-wrapper">
+                <input type="file" id="local-video-input" accept="video/*" />
               </div>
-              <div id="html5-wrapper">
-                <video id="video" width="100%">
-                  <source src="" type="video/mp4">
-                  Your browser does not support the video tag.
-                </video>
             </div>
-            <div id="youtube-placeholder" class="youtube-placeholder" aria-hidden="true">Preparing YouTube player…</div>
+            <div class="hero-divider-row">
+              <div class="hero-hr"></div>
+              <span class="hero-or">OR</span>
+              <div class="hero-hr"></div>
+            </div>
+            <div class="hero-field">
+              <label class="hero-label" for="youtube-url">YouTube URL</label>
+              <input type="url" id="youtube-url" class="hero-input" placeholder="e.g., https://www.youtube.com/watch?v=..." />
+            </div>
+            <div class="hero-submit">
+              <button id="load-youtube-btn" class="hero-btn-primary">Open</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="video-layout" class="tagging-grid">
+        <div class="left-column">
+          <!-- Video Player -->
+          <div id="video-player" class="video-player">
+            <div class="player-placeholder" aria-hidden="true" hidden>
+              <span class="material-symbols-outlined">play_circle</span>
+              <p>Loading video…</p>
+            </div>
+            <div id="html5-wrapper">
+              <video id="video" width="100%" style="max-height: 500px; background: #000;">
+                Your browser does not support the video tag.
+              </video>
+            </div>
             <div id="youtube-container" hidden></div>
           </div>
-          <div id="timeline-container" style="display:none;">
-            <h3 class="section-header timeline-label"><span class="icon">🕒</span> Timeline</h3>
-            <div id="timeline" class="timeline-panel"></div>
-          </div>
-        </div>
-        <div id="controls-column" class="controls-expanded">
-          <div class="controls-column-header">
-            <h3 class="section-header controls-title"><span class="icon">🎛️</span> Session Controls</h3>
-            <div class="controls-header-actions">
-              <button id="audio-mode-toggle" class="controls-toggle mode-toggle" type="button" aria-pressed="false" aria-label="Switch to audio mode">Switch to Audio Mode</button>
-              <button id="controls-collapse-btn" class="controls-toggle" type="button" aria-expanded="true" aria-label="Collapse control panel">Collapse</button>
+
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <button class="play-btn" id="play-pause-btn" type="button" aria-label="Play/Pause">
+              <span class="material-symbols-outlined">play_arrow</span>
+            </button>
+            <div class="progress-container">
+              <input type="range" id="video-progress" class="progress-bar" min="0" max="0" value="0" step="0.01" aria-label="Video progress">
+            </div>
+            <span id="audio-status" class="time-display" aria-live="polite">00:00 / 00:00</span>
+            <div class="volume-control">
+              <span class="material-symbols-outlined">volume_up</span>
+              <input type="range" id="volume-slider" class="volume-bar" min="0" max="100" value="100" aria-label="Volume">
             </div>
           </div>
-          <div class="controls-column-body">
-            <!-- New container for Jump Time and Add Tag -->
-            <div id="controls-tag-row" style="display: none;">
-              <section id="metadata-section" class="panel">
-          <h3 class="section-header"><span class="icon">🆔</span> Session Metadata</h3>
-          <label class="metadata-field" for="vid-input">
-            <span>VID (required)</span>
-            <input type="text" id="vid-input" placeholder="Enter VID">
-          </label>
-        </section>
-        <div id="interaction-panels">
-          <div id="jump-controls-container">
-            <h3 class="section-header"><span class="icon">⏱️</span> Jump to Time</h3>
-            <div id="jump-controls">
-              <input id="jump-time-input" type="text" placeholder="HH:MM:SS.mmm">
-              <button id="jump-time-btn">Go</button>
+
+          <!-- Timeline Strip -->
+          <div id="timeline" class="timeline-strip"></div>
+
+          <!-- Jump to Time -->
+          <div class="control-section">
+            <h3 class="section-title">Jump to Time</h3>
+            <div class="jump-controls">
+              <input type="text" id="jump-time-input" placeholder="HH:MM:SS.mmm" class="form-input">
+              <button id="jump-time-btn" class="btn-primary">Go</button>
             </div>
           </div>
-          <section id="tag-section" class="panel">
-            <h3 class="section-header"><span class="icon">🏷️</span> Add Tag</h3>
-            <div id="tag-input-row">
-              <input type="text" id="tag-input" placeholder="Tag label (optional)">
-            </div>
-            <div id="language-selector" class="language-selector" role="group" aria-label="Tag languages">
-              <span class="language-label">Language</span>
-              <div class="language-pill-group">
-                <label class="language-pill">
-                  <input type="checkbox" class="tag-language-checkbox" value="Cantonese">
-                  <span>Cantonese</span>
-                </label>
-                <label class="language-pill">
-                  <input type="checkbox" class="tag-language-checkbox" value="English">
-                  <span>English</span>
-                </label>
-                <label class="language-pill">
-                  <input type="checkbox" class="tag-language-checkbox" value="Mandarin">
-                  <span>Mandarin</span>
-                </label>
+
+          <!-- Session Metadata -->
+          <div class="control-section">
+            <h3 class="section-title">Session Metadata</h3>
+            <label class="form-label">VID <span class="required">*</span></label>
+            <input type="text" id="vid-input" class="form-input" required>
+          </div>
+
+          <!-- Add Tag -->
+          <div class="control-section">
+            <h3 class="section-title">Add Tag</h3>
+            <button id="open-add-tag-modal-btn" class="btn-primary btn-full-width mb-16">+ Add Tags</button>
+            
+            <label class="form-label modal-section-label mt-16">Language</label>
+            <div class="language-selector">
+              <div class="language-pills">
+                <button class="lang-pill active tag-language-checkbox" data-lang="Cantonese">Cantonese</button>
+                <button class="lang-pill active tag-language-checkbox" data-lang="English">English</button>
+                <button class="lang-pill tag-language-checkbox" data-lang="Mandarin">Mandarin</button>
               </div>
             </div>
-            <div id="tag-remarks-row">
-              <textarea id="tag-remarks-input" placeholder="Remarks (optional)" rows="2"></textarea>
-            </div>
-            <div id="tag-button-row">
-              <button id="start-tag-btn">Mark Start</button>
-              <button id="end-tag-btn">Mark End</button>
-            </div>
-          </section>
-        </div>
-      </div>
-          </div>
-        </div>
-      </div>
-      
-    </section>
-    <aside id="sidebar" style="display:none;">      <!-- Sidebar Theme Toggle -->      <div id="theme-toggle-sidebar" class="theme-toggle-container">
-        <button class="go-home-btn" data-home-trigger title="Return to home screen">Home</button>
-        <button class="theme-toggle" title="Toggles light & dark" aria-label="auto" aria-live="polite">
-          <svg class="sun-and-moon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24">
-            <mask class="moon" id="moon-mask">
-              <rect x="0" y="0" width="100%" height="100%" fill="white" />
-              <circle cx="24" cy="10" r="6" fill="black" />
-            </mask>
-            <circle class="sun" cx="12" cy="12" r="6" mask="url(#moon-mask)" fill="currentColor" />
-            <g class="sun-beams" stroke="currentColor">
-              <line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-            </g>
-          </svg>
-        </button>
-        <div class="shortcut-help-btn" title="Show keyboard shortcuts (press ?)">?</div>
-      </div>
 
-      <h3 class="section-header taglist-header"><span class="icon">📋</span> Tag List</h3>
-      <table id="tag-list-table">
-        <thead>
-          <tr><th>Start</th><th>End</th><th>Lang</th><th>Tag</th><th>Remarks</th><th>Del</th></tr>
-        </thead>
-        <tbody id="tag-list-body">
-          <!-- Tag rows go here -->
-        </tbody>
-      </table>
-      <section id="tag-summary-section" class="panel">
-        <div class="tag-summary-header">
-          <h3 class="section-header"><span class="icon">📊</span> Tag Summary</h3>
-          <div class="summary-mode-toggle" role="radiogroup" aria-label="Tag summary grouping">
-            <button type="button" class="summary-mode-btn is-active" data-summary-mode="tag" aria-pressed="true">By Tag</button>
-            <button type="button" class="summary-mode-btn" data-summary-mode="language" aria-pressed="false">By Lang</button>
+            <label for="tag-remarks-input" class="form-label modal-section-label mt-16">Remarks</label>
+            <textarea id="tag-remarks-input" class="form-textarea" placeholder="Remarks (optional)" rows="3"></textarea>
+
+            <div class="mark-buttons">
+              <button id="start-tag-btn" class="btn-primary">Mark Start</button>
+              <button id="end-tag-btn" class="btn-neutral">Mark End</button>
+            </div>
           </div>
         </div>
-        <table id="tag-summary-table">
-          <thead>
-            <tr><th>Tag</th><th>Frequency</th></tr>
-          </thead>
-          <tbody id="tag-summary-body">
-            <!-- Summary rows go here -->
-          </tbody>
-        </table>
-      </section>
-      <h3 class="section-header session-label"><span class="icon">💾</span> Session Actions</h3>
-      <div id="export-row" class="button-group">
-        <button id="export-btn" title="Export tags to CSV">Export</button>
-        <button id="save-btn" title="Save current session">Save</button>
-        <button id="load-btn" title="Load a saved session">Load</button>
+
+        <!-- Right Column: Tables + Actions -->
+        <div class="right-column">
+          <!-- Tag List -->
+          <div class="table-section">
+            <h3 class="section-title">Tag List</h3>
+            <div class="table-wrapper">
+              <table id="tag-list-table" class="data-table">
+                <thead>
+                  <tr>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Lang</th>
+                    <th>Tag</th>
+                    <th>Remarks</th>
+                    <th>Del</th>
+                  </tr>
+                </thead>
+                <tbody id="tag-list-body">
+                  <!-- Tag rows will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tag Summary -->
+          <div class="table-section">
+            <div class="summary-header">
+              <h3 class="section-title">Tag Summary</h3>
+              <div class="summary-toggle summary-mode-toggle">
+                <button class="toggle-btn summary-mode-btn is-active" data-summary-mode="tag">By Tag</button>
+                <button class="toggle-btn summary-mode-btn" data-summary-mode="language">By Lang</button>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table id="tag-summary-table" class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tag</th>
+                    <th>Frequency</th>
+                  </tr>
+                </thead>
+                <tbody id="tag-summary-body">
+                  <!-- Summary rows will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Session Actions -->
+          <div class="actions-section">
+            <h3 class="section-title">Session Actions</h3>
+            <div class="action-buttons">
+              <button id="export-btn" class="btn-outline">Export</button>
+              <button id="save-btn" class="btn-outline">Save</button>
+              <button id="load-btn" class="btn-outline">Load</button>
+              <button id="audio-mode-toggle" class="btn-outline">Switch to Audio Mode</button>
+            </div>
+          </div>
+        </div>
       </div>
-    </aside>
+    </section>
   </div>
-  <!-- Move file input outside of video section to prevent Plyr interference -->
-  <input type="file" id="local-video-input" accept="video/*" style="display: none;" />
-  <button id="player-test-btn" class="player-test-btn" type="button" title="Open isolated player test view">Test</button>
   <script src="js/core/namespace.js"></script>
   <script src="js/player/state.js"></script>
   <script src="js/player/dom.js"></script>
-  <script src="js/player/audioControls.js"></script>
+  <script src="audioControls.js"></script>
   <script src="js/player/timeline.js"></script>
   <script src="js/player/youtubeController.js"></script>
   <script src="js/player/controller.js"></script>
@@ -218,7 +224,6 @@
   <script src="js/tagging/tagsummary.js"></script>
   <script src="js/tagging/export.js"></script>
   <script src="js/tagging/save.js"></script>
-  <script src="js/tagging/load.js"></script>
   <script src="js/core/shortcut.js"></script>
   <script src="js/core/shortcut_help.js"></script>
   <script src="js/core/main.js"></script>
@@ -226,87 +231,248 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Hide hero and show app when video is loaded
       function showApp() {
+        console.log('[showApp] Called');
         var el;
         if (document.body) {
           document.body.classList.add('player-active');
-          document.body.classList.remove('sidecar-collapsed');
+          console.log('[showApp] Added player-active class');
         }
-        var controlsColumn = document.getElementById('controls-column');
-        var controlsToggle = document.getElementById('controls-collapse-btn');
-        if (controlsColumn) controlsColumn.classList.remove('controls-collapsed');
-        if (controlsToggle) {
-          controlsToggle.setAttribute('aria-expanded', 'true');
-          controlsToggle.textContent = 'Collapse';
-          controlsToggle.setAttribute('aria-label', 'Collapse control panel');
+        // Hide hero (check both IDs)
+        el = document.getElementById('video-hero') || document.getElementById('video-loader');
+        if (el) {
+          el.style.display = 'none';
+          console.log('[showApp] Hero hidden');
+        } else {
+          console.warn('[showApp] Hero not found!');
         }
-        // Use the potentially renamed ID 'video-loader'
-        el = document.getElementById('video-loader') || document.getElementById('video-hero');
-        if (el) el.style.display = 'none';
-        el = document.getElementById('video-player'); if (el) el.style.display = '';
-        // Show new timeline container
-        el = document.getElementById('timeline-container'); if (el) el.style.display = '';
-        // Show the new combined controls row
-        el = document.getElementById('controls-tag-row'); if (el) el.style.display = 'flex'; // Use flex for the row
-        // Old timeline header is replaced by timeline-container
-        el = document.getElementById('timeline'); if (el) el.style.display = 'block'; // Ensure timeline itself is visible
-        el = document.getElementById('sidebar'); if (el) el.style.display = 'flex'; // Use flex for sidebar
-        if (typeof window.updateAudioModeToggle === 'function') {
-          window.updateAudioModeToggle();
+        
+        // Show main tagging grid - force display
+        el = document.getElementById('video-layout');
+        if (el) {
+          el.style.display = 'grid';
+          el.style.gridTemplateColumns = '1fr 1fr';
+          console.log('[showApp] Grid shown:', el.style.display, 'computed:', window.getComputedStyle(el).display);
+        } else {
+          console.warn('[showApp] Grid not found!');
         }
-        // No longer need to show tag-section separately
+        
+        // Hide placeholder
+        el = document.querySelector('.player-placeholder');
+        if (el) {
+          el.setAttribute('hidden', '');
+          console.log('[showApp] Placeholder hidden');
+        }
       }
-      // Patch for video.js compatibility: alias video-hero as video-loader
-      var videoLoader = document.getElementById('video-hero');
-      if (videoLoader && !document.getElementById('video-loader')) {
-        videoLoader.id = 'video-loader';
-      }
-      // YouTube button listener (Local file loading is handled in video.js)
-      document.getElementById('load-youtube-btn').addEventListener('click', function() {
-        if (document.getElementById('youtube-url').value.trim()) {
-          // The actual YouTube loading logic is in video.js, which should call showApp
-          // We might need to trigger that logic here or ensure video.js calls showApp
-        }
-      });
-      // Make showApp globally accessible for video.js
       window.showApp = showApp;
+      // Note: Don't rename video-hero here - showApp needs to find it
+      
+      // Override or hook into existing controller events
+      // Watch for video element load
+      const videoEl = document.getElementById('video');
+      if (videoEl) {
+        videoEl.addEventListener('loadedmetadata', function() {
+          console.log('[index] Video loadedmetadata - calling showApp');
+          showApp();
+        });
+        videoEl.addEventListener('loadeddata', function() {
+          console.log('[index] Video loadeddata - calling showApp');
+          showApp();
+        });
+      }
+      
+      // Local file loading is handled entirely by controller.js
+      // DO NOT add change listener here - controller.js handles it
+      
+      // Watch for YouTube container changes
+      const ytContainer = document.getElementById('youtube-container');
+      if (ytContainer) {
+        const observer = new MutationObserver(function(mutations) {
+          if (ytContainer.querySelector('iframe')) {
+            console.log('[index] YouTube iframe detected - calling showApp');
+            setTimeout(showApp, 500);
+            observer.disconnect();
+          }
+        });
+        observer.observe(ytContainer, { childList: true, subtree: true });
+      }
+      
+      // Also listen for the existing controller's signals
+      document.addEventListener('video:loaded', function() {
+        console.log('[index] video:loaded event - calling showApp');
+        showApp();
+      });
+      
+      document.addEventListener('youtube:ready', function() {
+        console.log('[index] youtube:ready event - calling showApp');
+        showApp();
+      });
 
       // Initialize other main script components AFTER DOM is ready
       // The calls are inside the DOMContentLoaded listener in js/main.js
     });
   </script>
+
   <!-- Add YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-
-  <div id="admin-modal" class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" hidden>
-    <div class="admin-modal-backdrop" data-admin-close></div>
-    <div class="admin-modal-content">
-      <h2 id="admin-modal-title">Admin Controls</h2>
-      <div id="admin-password-section">
-        <label for="admin-password-input">Enter password</label>
-        <input type="password" id="admin-password-input" autocomplete="current-password" placeholder="Password">
-        <button id="admin-auth-btn">Unlock</button>
-        <div id="admin-error" role="alert"></div>
-      </div>
-      <div id="admin-toggle-section" hidden>
-        <label class="media-toggle">
-          <input type="checkbox" id="media-mode-toggle">
-          <span>Enable video playback by default</span>
-        </label>
-        <p class="toggle-help">When off, the player remains in audio-only mode with the "No Video" placeholder.</p>
-      </div>
-      <button id="admin-close-btn" data-admin-close>Close</button>
-    </div>
-  </div>
 
   <!-- Remarks Modal -->
   <div id="remarks-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="remarks-modal-title" hidden>
     <div class="modal-backdrop" data-remarks-close></div>
     <div class="modal-content">
-      <h2 id="remarks-modal-title">Tag Remarks</h2>
+      <h3 id="remarks-modal-title">Edit Remarks</h3>
       <textarea id="remarks-modal-text" rows="6" placeholder="Enter remarks..."></textarea>
       <div class="modal-actions">
         <button id="remarks-cancel-btn" data-remarks-close>Cancel</button>
         <button id="remarks-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Tag Modal (for initial tag creation) -->
+  <div id="add-tag-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="add-tag-modal-title" hidden>
+    <div class="modal-backdrop" data-add-tag-close></div>
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="add-tag-modal-title">Add Tags</h3>
+          <button class="icon-btn" data-add-tag-close type="button" aria-label="Close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 24px; color: var(--text-secondary);">Manage tag labels. Language and remarks are set in the main panel.</p>
+          
+          <!-- Add Tag Section -->
+          <div class="modal-section-spacing">
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Add Tag</label>
+            <button id="add-initial-tag-btn-open" class="btn-primary" type="button" style="width: 100%;">+ Add Tag</button>
+            <input type="text" id="add-initial-tag-input" class="form-input" placeholder="Enter tag and press Enter" style="margin-top: 8px; display: none;" />
+          </div>
+          
+          <!-- Tags List -->
+          <div style="margin-top: 24px;">
+            <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">Tags</h4>
+            <ul id="add-initial-tags-list" style="display: flex; flex-direction: column; gap: 12px; list-style: none; padding: 0; margin: 0;">
+              <!-- Tags will be dynamically populated here -->
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline" data-add-tag-close type="button">Cancel</button>
+          <button id="add-tag-modal-save-btn" class="btn-primary" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Modal -->
+  <div id="admin-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" hidden>
+    <div class="modal-backdrop" data-admin-close></div>
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="admin-modal-title">Admin Controls</h3>
+          <button class="icon-btn" data-admin-close type="button" aria-label="Close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Password Section -->
+          <div id="admin-password-section">
+            <p style="margin-bottom: 16px; color: var(--text-secondary);">Enter admin password to access controls:</p>
+            <input type="password" id="admin-password-input" class="form-input" placeholder="Enter password" style="margin-bottom: 8px;" />
+            <p id="admin-error" style="color: #ef4444; font-size: 14px; margin: 8px 0;"></p>
+            <button id="admin-auth-btn" class="btn-primary" style="width: 100%;">Authenticate</button>
+          </div>
+          
+          <!-- Toggle Section (shown after authentication) -->
+          <div id="admin-toggle-section" hidden>
+            <p style="margin-bottom: 16px; color: var(--text-secondary);">Switch between audio-only and video playback mode:</p>
+            <label class="toggle-label" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+              <span style="font-weight: 500;">Video Mode</span>
+              <input type="checkbox" id="media-mode-toggle" class="toggle-input" />
+            </label>
+            <p style="margin-top: 12px; font-size: 13px; color: var(--text-tertiary);">When enabled, video playback is shown. When disabled, audio-only mode is active.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tag Label Editing Modal -->
+  <div id="tag-label-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="tag-label-modal-title" hidden>
+    <div class="modal-backdrop" data-taglabel-close></div>
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="tag-label-modal-title">Manage Tags</h3>
+          <button class="icon-btn" data-taglabel-close type="button" aria-label="Close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">Add, edit, or remove tags for this interval.</p>
+          
+          <!-- Add New Tag Section -->
+          <div class="modal-section-spacing">
+            <label class="modal-section-label">Add New Tag</label>
+            <button id="add-tag-btn-open" class="btn-primary btn-full-width" type="button">+ Add Tag</button>
+            <input type="text" id="new-tag-input" class="form-input mt-8 input-hidden" placeholder="Enter tag and press Enter" />
+          </div>
+          
+          <!-- Divider -->
+          <div class="modal-divider"></div>
+          
+          <!-- Existing Tags Section -->
+          <div>
+            <h4 class="modal-section-title">Existing Tags</h4>
+            <ul id="existing-tags-list" style="display: flex; flex-direction: column; gap: 12px; list-style: none; padding: 0; margin: 0;">
+              <!-- Tags will be dynamically populated here -->
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline" data-taglabel-close type="button">Cancel</button>
+          <button id="tag-label-save-btn" class="btn-primary" type="button">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Language Editing Modal -->
+  <div id="language-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="language-modal-title" hidden>
+    <div class="modal-backdrop" data-language-close></div>
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="language-modal-title">Edit Language(s)</h3>
+          <button class="icon-btn" data-language-close type="button" aria-label="Close">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <fieldset style="border: none; padding: 0;">
+            <legend style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">Languages</legend>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; cursor: pointer;">
+                <span style="font-weight: 500; color: var(--text-primary);">Cantonese</span>
+                <input type="checkbox" class="lang-modal-checkbox" data-lang="Cantonese" style="width: 20px; height: 20px; cursor: pointer;" />
+              </label>
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; cursor: pointer;">
+                <span style="font-weight: 500; color: var(--text-primary);">English</span>
+                <input type="checkbox" class="lang-modal-checkbox" data-lang="English" style="width: 20px; height: 20px; cursor: pointer;" />
+              </label>
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; cursor: pointer;">
+                <span style="font-weight: 500; color: var(--text-primary);">Mandarin</span>
+                <input type="checkbox" class="lang-modal-checkbox" data-lang="Mandarin" style="width: 20px; height: 20px; cursor: pointer;" />
+              </label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline" data-language-close type="button">Cancel</button>
+          <button id="language-save-btn" class="btn-primary" type="button">Save</button>
+        </div>
       </div>
     </div>
   </div>

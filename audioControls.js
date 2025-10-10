@@ -132,7 +132,12 @@
           ? 'Audio controls waiting for YouTube player to finish initialising.'
           : 'Audio controls disabled because no playable media source is available.'
       };
-      audioToggleBtn.textContent = 'Play';
+      const iconSpan = audioToggleBtn.querySelector('.material-symbols-outlined');
+      if (iconSpan) {
+        iconSpan.textContent = 'play_arrow';
+      } else {
+        audioToggleBtn.textContent = 'Play';
+      }
       audioToggleBtn.setAttribute('aria-label', 'Play audio');
       audioStatus.textContent = awaitingYouTube ? 'Loading…' : '00:00 / 00:00';
       if (audioProgress) {
@@ -196,7 +201,13 @@
 
     const duration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 0;
 
-    audioToggleBtn.textContent = isPlaying ? 'Pause' : 'Play';
+    // Update button text and icon
+    const iconSpan = audioToggleBtn.querySelector('.material-symbols-outlined');
+    if (iconSpan) {
+      iconSpan.textContent = isPlaying ? 'pause' : 'play_arrow';
+    } else {
+      audioToggleBtn.textContent = isPlaying ? 'Pause' : 'Play';
+    }
     audioToggleBtn.setAttribute('aria-label', isPlaying ? 'Pause audio' : 'Play audio');
 
     audioStatus.textContent = `${formatMediaTime(current)} / ${formatMediaTime(duration || 0)}`;
@@ -258,12 +269,23 @@
     playerRoot.classList.remove('audio-mode', 'video-mode');
     playerRoot.classList.add(`${mode}-mode`);
 
+    if (global.document && global.document.body) {
+      global.document.body.classList.toggle('audio-mode-active', mode === MEDIA_MODE.AUDIO);
+      global.document.body.classList.toggle('video-mode-active', mode === MEDIA_MODE.VIDEO);
+    }
+
     if (placeholder) {
       placeholder.setAttribute('aria-hidden', mode === MEDIA_MODE.VIDEO ? 'true' : 'false');
       const hasSource = global.ytPlayer
         || (global.plyrInstance && global.plyrInstance.media?.currentSrc)
         || document.getElementById('video')?.currentSrc;
-      placeholder.textContent = mode === MEDIA_MODE.AUDIO && hasSource ? 'Audio playback active' : 'No Video';
+      const audioActive = mode === MEDIA_MODE.AUDIO && hasSource;
+      placeholder.textContent = audioActive ? 'Audio playback active' : 'No Video';
+      if (audioActive) {
+        placeholder.dataset.placeholderNote = 'Audio mode active';
+      } else {
+        placeholder.removeAttribute('data-placeholder-note');
+      }
     }
 
     if (audioControlBar) {
@@ -304,6 +326,27 @@
     youtubeContainer.style.height = '';
     youtubeContainer.style.display = '';
   }
+
+    // Handle HTML5 video element visibility in audio mode
+    const html5Video = document.getElementById('video');
+    const html5Wrapper = document.getElementById('html5-wrapper');
+    if (html5Video && html5Video.src) {
+      if (mode === MEDIA_MODE.AUDIO) {
+        html5Video.style.opacity = '0.001';
+        html5Video.style.pointerEvents = 'none';
+        if (html5Wrapper) {
+          html5Wrapper.style.opacity = '0.001';
+          html5Wrapper.style.pointerEvents = 'none';
+        }
+      } else {
+        html5Video.style.opacity = '';
+        html5Video.style.pointerEvents = '';
+        if (html5Wrapper) {
+          html5Wrapper.style.opacity = '';
+          html5Wrapper.style.pointerEvents = '';
+        }
+      }
+    }
 
     if (mode === MEDIA_MODE.AUDIO) {
       updateAudioControls();

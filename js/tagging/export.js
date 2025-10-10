@@ -26,17 +26,26 @@ function initExport() {
       return;
     }
     console.log('Export process started.'); // Log export start
-    // CSV header
-    let csv = 'Video Source,VID,Start (s),End (s),Start (HH:MM:SS.mmm),End (HH:MM:SS.mmm),Tag,Language,Remarks\n';
+    // CSV header with separate language columns
+    let csv = 'Video Source,VID,Start (s),End (s),Start (HH:MM:SS.mmm),End (HH:MM:SS.mmm),Tag,Cantonese,English,Mandarin,Remarks\n';
     tags
       .slice()
       .sort((a, b) => a.start - b.start)
       .forEach(tag => {
-        const label = (tag.label || '9999').replace(/"/g, '""');
-        const languages = Array.isArray(tag.languages) ? tag.languages.join(':') : '';
-        const languageCell = languages.replace(/"/g, '""');
-        const remarks = (tag.remarks || '').replace(/"/g, '""');
-        csv += `"${videoSource.replace(/"/g, '""')}","${vid.replace(/"/g, '""')}",${(tag.start || 0).toFixed(3)},${(tag.end || 0).toFixed(3)},${formatTime(tag.start, true)},${formatTime(tag.end, true)},"${label}","${languageCell}","${remarks}"\n`;
+        // Handle array of labels or single label, join with semicolon
+        const labels = Array.isArray(tag.label) ? tag.label.filter(l => l && l !== '9999') : (tag.label && tag.label !== '9999' ? [tag.label] : []);
+        const label = (labels.length > 0 ? labels.join(';') : '9999').replace(/"/g, '""');
+        
+        // Languages as 0/1 columns
+        const languages = Array.isArray(tag.languages) ? tag.languages : [];
+        const cantonese = languages.includes('Cantonese') ? 1 : 0;
+        const english = languages.includes('English') ? 1 : 0;
+        const mandarin = languages.includes('Mandarin') ? 1 : 0;
+        
+        // Remarks: show "9999" if empty or missing
+        const remarksValue = (tag.remarks && tag.remarks.trim()) ? tag.remarks.trim() : '9999';
+        const remarks = remarksValue.replace(/"/g, '""');
+        csv += `"${videoSource.replace(/"/g, '""')}","${vid.replace(/"/g, '""')}",${(tag.start || 0).toFixed(3)},${(tag.end || 0).toFixed(3)},${formatTime(tag.start, true)},${formatTime(tag.end, true)},"${label}",${cantonese},${english},${mandarin},"${remarks}"\n`;
       });
     // Add UTF-8 BOM for Excel/Unicode compatibility
     const BOM = '\uFEFF';
