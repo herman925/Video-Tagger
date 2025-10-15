@@ -19,9 +19,12 @@
 }
 
 .compact-field .compact-input,
-.compact-field .form-input {
-  height: var(--compact-control-height);
-  line-height: var(--compact-control-height);
+.compact-field .form-input,
+.compact-controls-row .form-input {
+  height: var(--compact-control-height) !important;
+  line-height: var(--compact-control-height) !important;
+  box-sizing: border-box !important;
+  padding: 0 12px !important;
 }
 
 .compact-label {
