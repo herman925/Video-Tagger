@@ -5,13 +5,18 @@
 const LANGUAGE_OPTIONS = ['Cantonese', 'English', 'Mandarin'];
 window.LANGUAGE_OPTIONS = LANGUAGE_OPTIONS;
 
+const PRESET_TAGS_URL = 'data/preset_tags.txt';
+let PRESET_TAGS_CACHE = [];
+
 function initTags() {
   const tagListBody = document.getElementById('tag-list-body');
   const remarksInput = document.getElementById('tag-remarks-input');
-  const languageButtons = Array.from(document.querySelectorAll('.tag-language-checkbox'));
+  const sessionLanguageButtons = Array.from(document.querySelectorAll('.session-language-pill'));
   const video = document.getElementById('video'); // HTML5 video
   const startTagBtn = document.getElementById('start-tag-btn');
   const endTagBtn = document.getElementById('end-tag-btn');
+  const openAddTagModalBtn = document.getElementById('open-add-tag-modal-btn');
+  const addInitialTagsList = document.getElementById('add-initial-tags-list');
 
   // Initialize timeline tags if not already initialized
   if (!window._timelineTags) {
@@ -20,14 +25,71 @@ function initTags() {
 
   // Track tag in progress
   let tagInProgress = null;
+  let preventModalReopenUntilLoaded = false;
 
-  // Set up language button toggles
-  languageButtons.forEach(btn => {
+  function getDefaultSessionLanguages() {
+    const defaults = sessionLanguageButtons
+      .filter(btn => btn.dataset.default === 'true')
+      .map(btn => btn.dataset.lang)
+      .filter(Boolean);
+    if (defaults.length) return defaults;
+    return [];
+  }
+
+  function normalizeLanguages(langs) {
+    if (!Array.isArray(langs)) return [];
+    return langs
+      .map(lang => {
+        if (!lang) return null;
+        const match = LANGUAGE_OPTIONS.find(option => option.toLowerCase() === String(lang).toLowerCase());
+        return match || String(lang).trim();
+      })
+      .filter(Boolean);
+  }
+
+  function ensureSessionLanguages() {
+    if (!Array.isArray(window.sessionLanguages)) window.sessionLanguages = [];
+    window.sessionLanguages = normalizeLanguages(window.sessionLanguages);
+  }
+
+  function updateSessionLanguageButtons() {
+    if (sessionLanguageButtons.length === 0) return;
+    ensureSessionLanguages();
+    const activeSet = new Set(window.sessionLanguages);
+    sessionLanguageButtons.forEach(btn => {
+      const isActive = activeSet.has(btn.dataset.lang);
+      btn.classList.toggle('active', isActive);
+    });
+  }
+
+  function setSessionLanguages(nextLanguages, { markDirty = false } = {}) {
+    window.sessionLanguages = normalizeLanguages(nextLanguages);
+    updateSessionLanguageButtons();
+    if (markDirty) window.markDirty?.();
+  }
+
+  function toggleSessionLanguage(btn) {
+    const lang = btn.dataset.lang;
+    if (!lang) return;
+    const activeSet = new Set(window.sessionLanguages || []);
+    if (activeSet.has(lang)) activeSet.delete(lang);
+    else activeSet.add(lang);
+    setSessionLanguages(Array.from(activeSet), { markDirty: true });
+  }
+
+  window.getSessionLanguages = () => Array.from(window.sessionLanguages || []);
+  window.setSessionLanguages = (langs, options) => setSessionLanguages(langs, options);
+
+  setSessionLanguages([], { markDirty: false });
+
+  sessionLanguageButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      btn.classList.toggle('active');
+      toggleSessionLanguage(btn);
     });
   });
+
+  updateSessionLanguageButtons();
 
   if (!startTagBtn || !endTagBtn || !tagListBody) {
     console.warn('[initTags] Missing required elements:', { startTagBtn, endTagBtn, tagListBody });
@@ -36,9 +98,44 @@ function initTags() {
   
   // Storage for tags from modal (populated by Add Tags modal)
   let pendingTagsFromModal = [];
+  let pendingTags = [];
+
+  function loadPresetTags({ force = false } = {}) {
+    if (!force && PRESET_TAGS_CACHE.length > 0) {
+      return Promise.resolve(PRESET_TAGS_CACHE);
+    }
+
+    preventModalReopenUntilLoaded = true;
+    return fetch(PRESET_TAGS_URL)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to load preset tags (${response.status})`);
+        }
+        return response.text();
+      })
+      .then(text => {
+        PRESET_TAGS_CACHE = text
+          .split(/\r?\n/)
+          .map(line => line.trim())
+          .filter(Boolean);
+        return PRESET_TAGS_CACHE;
+      })
+      .catch(err => {
+        console.error('[tag] Unable to load preset tags:', err);
+        PRESET_TAGS_CACHE = [];
+        return PRESET_TAGS_CACHE;
+      })
+      .finally(() => {
+        preventModalReopenUntilLoaded = false;
+      });
+  }
 
   document.addEventListener('video-tagger:session-cleared', () => {
     tagInProgress = null;
+    setSessionLanguages([], { markDirty: false });
+    pendingTagsFromModal = [];
+    pendingTags = [];
+    updateAddTagsButtonText();
   });
 
   function getCurrentTime() {
@@ -74,35 +171,6 @@ function initTags() {
     return `${h}:${m}:${s}`;
   }
 
-  function formatLanguages(langs) {
-    return Array.isArray(langs) && langs.length ? langs.join(':') : '';
-  }
-
-  function parseLanguages(raw) {
-    if (!raw) return [];
-    return raw
-      .split(/[:;,]/)
-      .map(part => part.trim())
-      .filter(Boolean)
-      .map(entry => {
-        const match = LANGUAGE_OPTIONS.find(option => option.toLowerCase() === entry.toLowerCase());
-        return match || null;
-      })
-      .filter(Boolean);
-  }
-
-  // Map full language to initial
-  const LANG_TO_INITIAL = {
-    'Cantonese': 'C',
-    'English': 'E',
-    'Mandarin': 'M'
-  };
-
-  function languagesToInitials(langs) {
-    if (!Array.isArray(langs) || langs.length === 0) return '';
-    return langs.map(l => LANG_TO_INITIAL[l] || l?.[0]?.toUpperCase() || '').filter(Boolean).join(':');
-  }
-
   // Modal helpers for editing tags
   const remarksModal = document.getElementById('remarks-modal');
   const remarksTextarea = document.getElementById('remarks-modal-text');
@@ -110,13 +178,11 @@ function initTags() {
   const remarksCloseEls = document.querySelectorAll('[data-remarks-close]');
   
   const tagLabelModal = document.getElementById('tag-label-modal');
-  const tagLabelInput = document.getElementById('tag-label-input');
   const tagLabelSaveBtn = document.getElementById('tag-label-save-btn');
   const tagLabelCloseEls = document.querySelectorAll('[data-taglabel-close]');
-  
-  const langModal = document.getElementById('language-modal');
-  const langSaveBtn = document.getElementById('language-save-btn');
-  const langCloseEls = document.querySelectorAll('[data-language-close]');
+  const tagLabelOptionsList = document.getElementById('tag-label-options-list');
+  const existingTagsList = document.getElementById('existing-tags-list');
+
   
   let editingTagIndex = null;
 
@@ -159,110 +225,77 @@ function initTags() {
     editingTagIndex = index;
     const tag = window._timelineTags[index];
     if (!tag) return;
-    
-    // Populate existing tags list
-    populateExistingTags(index);
-    
-    // Clear new tag input
-    const newTagInput = document.getElementById('new-tag-input');
-    if (newTagInput) newTagInput.value = '';
-    
-    if (tagLabelModal) tagLabelModal.hidden = false;
+
+    const showModal = () => {
+      populateTagLabelOptions(index);
+      populateExistingTags(index);
+      if (tagLabelModal) tagLabelModal.hidden = false;
+    };
+
+    if (PRESET_TAGS_CACHE.length === 0) {
+      initializePresetTags().then(showModal);
+    } else {
+      showModal();
+    }
   }
 
-  function populateExistingTags(index) {
+  function renderSelectedTagsPreview(labels) {
     const existingTagsList = document.getElementById('existing-tags-list');
     if (!existingTagsList) return;
-    
-    const tag = window._timelineTags[index];
-    if (!tag) return;
-    
     existingTagsList.innerHTML = '';
-    const labels = Array.isArray(tag.label) ? tag.label : [tag.label];
-    
-    labels.forEach((label, i) => {
-      if (!label || label === '9999') return;
-      
-      const li = document.createElement('li');
-      li.className = 'tag-list-item';
-      
-      const span = document.createElement('span');
-      span.textContent = label;
-      
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.innerHTML = '<span class="material-symbols-outlined">delete</span>';
-      button.addEventListener('click', () => {
-        removeTagLabel(index, i);
-      });
-      
-      li.appendChild(span);
-      li.appendChild(button);
-      existingTagsList.appendChild(li);
+    labels.forEach(label => {
+      const pill = document.createElement('span');
+      pill.className = 'preset-tag-pill active';
+      pill.textContent = label;
+      existingTagsList.appendChild(pill);
     });
   }
 
-  function removeTagLabel(tagIndex, labelIndex) {
-    const tag = window._timelineTags[tagIndex];
+  function populateExistingTags(index) {
+    const tag = window._timelineTags[index];
     if (!tag) return;
-    
-    const labels = Array.isArray(tag.label) ? tag.label : [tag.label];
-    labels.splice(labelIndex, 1);
-    tag.label = labels.length > 0 ? labels : ['9999'];
-    
-    populateExistingTags(tagIndex);
-    window.markDirty();
+    const labels = Array.isArray(tag.label)
+      ? tag.label.filter(l => l && l !== '9999')
+      : (tag.label && tag.label !== '9999'
+        ? String(tag.label)
+            .split(';')
+            .map(v => v.trim())
+            .filter(v => v && v !== '9999')
+        : []);
+    renderSelectedTagsPreview(labels);
   }
 
-  function addNewTag() {
-    if (editingTagIndex === null) return;
-    const tag = window._timelineTags[editingTagIndex];
-    if (!tag) return;
-    
-    const newTagInput = document.getElementById('new-tag-input');
-    const newLabel = (newTagInput?.value || '').trim();
-    if (!newLabel) return;
-    
-    const labels = Array.isArray(tag.label) ? tag.label.filter(l => l && l !== '9999') : (tag.label && tag.label !== '9999' ? [tag.label] : []);
-    labels.push(newLabel);
-    tag.label = labels;
-    
-    newTagInput.value = '';
-    populateExistingTags(editingTagIndex);
-    window.markDirty();
+  function populateTagLabelOptions(index) {
+    if (!tagLabelOptionsList) return;
+
+    const tag = window._timelineTags[index];
+    const selectedLabels = new Set(
+      (Array.isArray(tag?.label) ? tag.label : [tag?.label])
+        .filter(label => label && label !== '9999')
+    );
+
+    tagLabelOptionsList.innerHTML = '';
+
+    const updatePreview = () => {
+      renderSelectedTagsPreview(Array.from(selectedLabels));
+    };
+
+    PRESET_TAGS_CACHE.forEach(tagValue => {
+      const pill = createTagPill(tagValue, selectedLabels.has(tagValue), () => {
+        const isActive = pill.classList.toggle('active');
+        if (isActive) selectedLabels.add(tagValue);
+        else selectedLabels.delete(tagValue);
+        updatePreview();
+      });
+      tagLabelOptionsList.appendChild(pill);
+    });
+
+    updatePreview();
   }
 
   function closeTagLabelModal() {
     if (tagLabelModal) tagLabelModal.hidden = true;
     editingTagIndex = null;
-  }
-
-  // Wire up "+ Add Tag" button to show input
-  const addTagBtnOpen = document.getElementById('add-tag-btn-open');
-  const newTagInput = document.getElementById('new-tag-input');
-  
-  if (addTagBtnOpen && newTagInput) {
-    addTagBtnOpen.addEventListener('click', () => {
-      newTagInput.style.display = 'block';
-      newTagInput.focus();
-      addTagBtnOpen.style.display = 'none';
-    });
-  }
-  
-  // Wire up Enter key in new tag input
-  if (newTagInput) {
-    newTagInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addNewTag();
-        newTagInput.style.display = 'none';
-        if (addTagBtnOpen) addTagBtnOpen.style.display = 'block';
-      } else if (e.key === 'Escape') {
-        newTagInput.value = '';
-        newTagInput.style.display = 'none';
-        if (addTagBtnOpen) addTagBtnOpen.style.display = 'block';
-      }
-    });
   }
 
   if (tagLabelSaveBtn) {
@@ -272,10 +305,12 @@ function initTags() {
       // Save the changes: collect all tags from the list
       const tag = window._timelineTags[editingTagIndex];
       if (tag) {
-        const tagsList = document.getElementById('existing-tags-list');
-        const tagItems = tagsList ? tagsList.querySelectorAll('li') : [];
-        const labels = Array.from(tagItems).map(li => li.querySelector('span')?.textContent).filter(Boolean);
-        tag.label = labels.length > 0 ? labels : ['9999'];
+        const selectedValues = Array.from(tagLabelOptionsList?.querySelectorAll('.preset-tag-pill.active') || [])
+          .map(pill => pill.dataset.tagValue)
+          .filter(Boolean);
+        const labels = selectedValues.length > 0 ? selectedValues : ['9999'];
+        tag.label = labels.length === 1 ? labels[0] : labels;
+        renderSelectedTagsPreview(Array.isArray(tag.label) ? tag.label.filter(label => label !== '9999') : (tag.label !== '9999' ? [tag.label] : []));
         window.markDirty();
       }
       
@@ -289,57 +324,6 @@ function initTags() {
   if (tagLabelModal) {
     tagLabelModal.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeTagLabelModal();
-    });
-  }
-
-  // Language Modal
-  function openLanguageModal(index) {
-    editingTagIndex = index;
-    const tag = window._timelineTags[index];
-    if (!tag) return;
-    
-    // Update checkboxes to reflect current languages
-    const checkboxes = langModal?.querySelectorAll('.lang-modal-checkbox');
-    if (checkboxes) {
-      checkboxes.forEach(cb => {
-        const lang = cb.dataset.lang;
-        cb.checked = (tag.languages || []).includes(lang);
-      });
-    }
-    
-    if (langModal) langModal.hidden = false;
-  }
-
-  function closeLanguageModal() {
-    if (langModal) langModal.hidden = true;
-    editingTagIndex = null;
-  }
-
-  if (langSaveBtn) {
-    langSaveBtn.addEventListener('click', () => {
-      if (editingTagIndex === null) return closeLanguageModal();
-      const tag = window._timelineTags[editingTagIndex];
-      if (!tag) return closeLanguageModal();
-      
-      const checkboxes = langModal?.querySelectorAll('.lang-modal-checkbox');
-      const selectedLangs = [];
-      if (checkboxes) {
-        checkboxes.forEach(cb => {
-          if (cb.checked) selectedLangs.push(cb.dataset.lang);
-        });
-      }
-      tag.languages = selectedLangs;
-      
-      window.markDirty();
-      renderTagList();
-      window.updateTagSummary();
-      closeLanguageModal();
-    });
-  }
-  langCloseEls.forEach(el => el.addEventListener('click', closeLanguageModal));
-  if (langModal) {
-    langModal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeLanguageModal();
     });
   }
 
@@ -361,19 +345,6 @@ function initTags() {
       endCell.style.cursor = 'pointer';
       endCell.addEventListener('click', () => seekPlayer(tag.end));
       row.appendChild(endCell);
-
-      const languagesCell = document.createElement('td');
-      languagesCell.className = 'languages-cell clickable';
-      const initials = languagesToInitials(tag.languages) || '—';
-      languagesCell.textContent = initials;
-      languagesCell.style.cursor = 'pointer';
-      // Tooltip showing full language names
-      const fullLangNames = Array.isArray(tag.languages) && tag.languages.length > 0 
-        ? tag.languages.join(', ') 
-        : 'No languages';
-      languagesCell.title = `${fullLangNames} (Click to edit)`;
-      languagesCell.addEventListener('click', () => openLanguageModal(window._timelineTags.indexOf(tag)));
-      row.appendChild(languagesCell);
 
       const tagCell = document.createElement('td');
       tagCell.className = 'tag-cell clickable';
@@ -459,7 +430,6 @@ function initTags() {
     startTagBtn.disabled = true;
     endTagBtn.disabled = false;
     if (remarksInput) remarksInput.disabled = true;
-    languageButtons.forEach(cb => { cb.disabled = true; });
     startTagBtn.textContent = 'Tagging...';
     if (typeof window.showStartDotOnTimeline === 'function') {
       window.showStartDotOnTimeline(tagInProgress.start);
@@ -473,7 +443,7 @@ function initTags() {
     // Use tags from modal (array) or default to '9999'
     let label = pendingTagsFromModal.length > 0 ? pendingTagsFromModal : ['9999'];
     const end = currentTime;
-    const languages = languageButtons.filter(btn => btn.classList.contains('active')).map(btn => btn.dataset.lang);
+    const sessionLangs = Array.isArray(window.sessionLanguages) ? window.sessionLanguages.slice() : [];
     const remarks = remarksInput ? remarksInput.value.trim() : '';
 
     if (end < tagInProgress.start) {
@@ -483,7 +453,6 @@ function initTags() {
       startTagBtn.disabled = false;
       endTagBtn.disabled = true;
       if (remarksInput) remarksInput.disabled = false;
-      languageButtons.forEach(cb => { cb.disabled = false; });
       startTagBtn.textContent = 'Mark Start';
       if (typeof window.removeStartDotFromTimeline === 'function') {
         window.removeStartDotFromTimeline();
@@ -491,20 +460,15 @@ function initTags() {
       return;
     }
 
-    window._timelineTags.push({ start: tagInProgress.start, end, label, languages, remarks });
+    window._timelineTags.push({ start: tagInProgress.start, end, label, languages: sessionLangs, remarks });
     tagInProgress = null;
-    pendingTagsFromModal = []; // Clear tags after use
-    // Note: We keep pendingTags so user can reuse them for next interval
+    // Note: Keep pendingTags so user can reuse them for next interval
     startTagBtn.disabled = false;
     endTagBtn.disabled = true;
     if (remarksInput) {
       remarksInput.value = '';
       remarksInput.disabled = false;
     }
-    languageButtons.forEach(cb => {
-      cb.classList.remove('active');
-      cb.disabled = false;
-    });
     startTagBtn.textContent = 'Mark Start';
     renderTagList();
     window.updateTimelineMarkers(window._timelineTags);
@@ -519,30 +483,36 @@ function initTags() {
   
   // Add Tag Modal (for initial tag setup before marking)
   const addTagModal = document.getElementById('add-tag-modal');
-  const openAddTagModalBtn = document.getElementById('open-add-tag-modal-btn');
   const addTagModalSaveBtn = document.getElementById('add-tag-modal-save-btn');
   const addTagModalCloseEls = document.querySelectorAll('[data-add-tag-close]');
-  const addInitialTagBtnOpen = document.getElementById('add-initial-tag-btn-open');
-  const addInitialTagInput = document.getElementById('add-initial-tag-input');
-  const addInitialTagsList = document.getElementById('add-initial-tags-list');
-  
-  // Temporary storage for tags before marking
-  let pendingTags = [];
-  
+
   function openAddTagModal() {
-    if (!addTagModal) return;
-    // Keep existing tags when opening modal for editing
-    if (pendingTags.length === 0) {
-      pendingTags = [];
+    if (preventModalReopenUntilLoaded) return;
+    function showModal() {
+      pendingTags = [...pendingTagsFromModal];
+      updateAddInitialTagsList();
+      addTagModal.hidden = false;
     }
-    updateAddInitialTagsList();
-    
-    if (addInitialTagInput) addInitialTagInput.style.display = 'none';
-    if (addInitialTagBtnOpen) addInitialTagBtnOpen.style.display = 'block';
-    
-    addTagModal.hidden = false;
+
+    loadPresetTags().then(showModal);
   }
-  
+
+  function createTagPill(tagValue, isActive, clickHandler) {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'preset-tag-pill';
+    pill.dataset.tagValue = tagValue;
+    pill.textContent = tagValue;
+    if (isActive) pill.classList.add('active');
+    pill.addEventListener('click', clickHandler);
+    return pill;
+  }
+
+  loadPresetTags().then(() => {
+    updateAddInitialTagsList();
+    updateAddTagsButtonText();
+  });
+
   function updateAddTagsButtonText() {
     if (!openAddTagModalBtn) return;
     if (pendingTags.length === 0) {
@@ -551,90 +521,40 @@ function initTags() {
       openAddTagModalBtn.textContent = `Edit Tags (${pendingTags.length})`;
     }
   }
-  
+
   function closeAddTagModal() {
     if (!addTagModal) return;
     addTagModal.hidden = true;
   }
-  
+
   function updateAddInitialTagsList() {
     if (!addInitialTagsList) return;
     addInitialTagsList.innerHTML = '';
-    
-    pendingTags.forEach((tag, i) => {
-      const li = document.createElement('li');
-      li.className = 'tag-list-item';
-      
-      const span = document.createElement('span');
-      span.textContent = tag;
-      
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.innerHTML = '<span class="material-symbols-outlined">delete</span>';
-      button.addEventListener('click', () => {
-        pendingTags.splice(i, 1);
-        updateAddInitialTagsList();
+    const currentSelection = new Set(pendingTags);
+
+    PRESET_TAGS_CACHE.forEach(tagValue => {
+      const pill = createTagPill(tagValue, currentSelection.has(tagValue), () => {
+        const isActive = pill.classList.toggle('active');
+        if (isActive) {
+          if (!pendingTags.includes(tagValue)) pendingTags.push(tagValue);
+        } else {
+          pendingTags = pendingTags.filter(tag => tag !== tagValue);
+        }
         updateAddTagsButtonText();
       });
-      
-      li.appendChild(span);
-      li.appendChild(button);
-      addInitialTagsList.appendChild(li);
+      addInitialTagsList.appendChild(pill);
     });
   }
-  
-  function addPendingTag() {
-    if (!addInitialTagInput) return;
-    const newTag = addInitialTagInput.value.trim();
-    if (!newTag) return;
-    
-    pendingTags.push(newTag);
-    addInitialTagInput.value = '';
-    updateAddInitialTagsList();
-    updateAddTagsButtonText();
-  }
-  
-  // Wire up open button
+
   if (openAddTagModalBtn) {
     openAddTagModalBtn.addEventListener('click', openAddTagModal);
   }
-  
-  // Wire up "+ Add Tag" button in modal
-  if (addInitialTagBtnOpen && addInitialTagInput) {
-    addInitialTagBtnOpen.addEventListener('click', () => {
-      addInitialTagInput.style.display = 'block';
-      addInitialTagInput.focus();
-      addInitialTagBtnOpen.style.display = 'none';
-    });
-  }
-  
-  // Wire up Enter key in add initial tag input
-  if (addInitialTagInput) {
-    addInitialTagInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addPendingTag();
-        addInitialTagInput.style.display = 'none';
-        if (addInitialTagBtnOpen) addInitialTagBtnOpen.style.display = 'block';
-      } else if (e.key === 'Escape') {
-        addInitialTagInput.value = '';
-        addInitialTagInput.style.display = 'none';
-        if (addInitialTagBtnOpen) addInitialTagBtnOpen.style.display = 'block';
-      }
-    });
-  }
-  
-  // Language and remarks are now managed in the main left column, not in the modal
-  
-  // Wire up Done button
+
   if (addTagModalSaveBtn) {
     addTagModalSaveBtn.addEventListener('click', () => {
-      // Store tags for use when marking start/end
-      pendingTagsFromModal = [...pendingTags]; // Copy tags from modal
-      
-      // Update button text to show tag count
+      pendingTags = pendingTags.filter(tag => PRESET_TAGS_CACHE.includes(tag));
+      pendingTagsFromModal = [...pendingTags];
       updateAddTagsButtonText();
-      
       closeAddTagModal();
     });
   }

@@ -82,17 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial setup for button states etc.
   const startTagBtn = document.getElementById('start-tag-btn');
   const endTagBtn = document.getElementById('end-tag-btn');
-  const tagInput = document.getElementById('tag-input');
   const remarksInput = document.getElementById('tag-remarks-input');
-  const languageButtons = Array.from(document.querySelectorAll('.tag-language-checkbox'));
+  const sessionLanguageButtons = Array.from(document.querySelectorAll('.session-language-pill'));
   const vidInput = document.getElementById('vid-input');
   const goHomeBtn = document.querySelector('[data-home-trigger]');
 
   if (startTagBtn) startTagBtn.disabled = true; // Disabled until video loaded
   if (endTagBtn) endTagBtn.disabled = true;
-  if (tagInput) tagInput.disabled = true;
   if (remarksInput) remarksInput.disabled = true;
-  languageButtons.forEach(cb => { cb.disabled = true; });
+  sessionLanguageButtons.forEach(btn => { btn.disabled = true; btn.setAttribute('aria-disabled', 'true'); });
 
   if (vidInput) {
     window.currentVID = vidInput.value.trim();
@@ -102,11 +100,74 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  languageButtons.forEach(cb => {
-    cb.addEventListener('click', () => {
+  sessionLanguageButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
       window.markDirty();
     });
   });
+
+  const taggingGrid = document.getElementById('video-layout');
+  const gridDivider = document.getElementById('grid-divider');
+
+  if (taggingGrid && gridDivider) {
+    let leftPercent = 50;
+    const MIN_PERCENT = 30;
+    const MAX_PERCENT = 70;
+
+    const clamp = (value) => Math.min(MAX_PERCENT, Math.max(MIN_PERCENT, value));
+
+    const applyLayout = (percent) => {
+      leftPercent = clamp(percent);
+      const rightPercent = 100 - leftPercent;
+      taggingGrid.style.setProperty('--left-col', `${leftPercent}%`);
+      taggingGrid.style.setProperty('--right-col', `${rightPercent}%`);
+      gridDivider.style.left = `${leftPercent}%`;
+    };
+
+    applyLayout(leftPercent);
+
+    const updateFromPointer = (clientX) => {
+      const rect = taggingGrid.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const percent = ((clientX - rect.left) / rect.width) * 100;
+      applyLayout(percent);
+    };
+
+    let activePointerId = null;
+
+    gridDivider.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      activePointerId = event.pointerId;
+      gridDivider.setPointerCapture(activePointerId);
+      gridDivider.classList.add('dragging');
+      updateFromPointer(event.clientX);
+    });
+
+    gridDivider.addEventListener('pointermove', (event) => {
+      if (activePointerId === null) return;
+      event.preventDefault();
+      updateFromPointer(event.clientX);
+    });
+
+    const endPointerDrag = () => {
+      if (activePointerId === null) return;
+      gridDivider.releasePointerCapture(activePointerId);
+      activePointerId = null;
+      gridDivider.classList.remove('dragging');
+    };
+
+    gridDivider.addEventListener('pointerup', endPointerDrag);
+    gridDivider.addEventListener('pointercancel', endPointerDrag);
+
+    gridDivider.addEventListener('keydown', (event) => {
+      const { key } = event;
+      if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+      event.preventDefault();
+      const step = event.shiftKey ? 5 : 2;
+      const delta = key === 'ArrowLeft' ? -step : step;
+      applyLayout(leftPercent + delta);
+    });
+  }
 
   if (remarksInput) {
     remarksInput.addEventListener('input', window.markDirty);
@@ -273,17 +334,14 @@ document.addEventListener('DOMContentLoaded', () => {
       startTagBtn.textContent = 'Mark Start';
     }
     if (endTagBtn) endTagBtn.disabled = true;
-    if (tagInput) {
-      tagInput.value = '';
-      tagInput.disabled = true;
-    }
     if (remarksInput) {
       remarksInput.value = '';
       remarksInput.disabled = true;
     }
-    languageButtons.forEach(cb => {
-      cb.classList.remove('active');
-      cb.disabled = true;
+    sessionLanguageButtons.forEach(btn => {
+      btn.classList.remove('active');
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
     });
 
     if (typeof CustomEvent === 'function') {
@@ -371,20 +429,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (video) {
     video.addEventListener('loadedmetadata', () => {
       if (startTagBtn) startTagBtn.disabled = false;
-      if (tagInput) tagInput.disabled = false;
       if (remarksInput) remarksInput.disabled = false;
-      languageButtons.forEach(cb => { cb.disabled = false; });
+      sessionLanguageButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+      });
       // End button remains disabled until start is clicked
     });
      video.addEventListener('emptied', () => {
         // Reset buttons if video source is removed/changed
         if (startTagBtn) startTagBtn.disabled = true;
         if (endTagBtn) endTagBtn.disabled = true;
-        if (tagInput) tagInput.disabled = true;
         if (remarksInput) remarksInput.disabled = true;
-        languageButtons.forEach(cb => {
-          cb.classList.remove('active');
-          cb.disabled = true;
+        sessionLanguageButtons.forEach(btn => {
+          btn.disabled = true;
+          btn.setAttribute('aria-disabled', 'true');
         });
         if (startTagBtn) startTagBtn.textContent = 'Mark Start'; // Reset text
         // Clear tags and timeline? Might be needed depending on desired UX

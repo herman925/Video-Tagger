@@ -31,9 +31,14 @@ function initSaveLoad() {
     const json = JSON.stringify(session, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const y = String(now.getFullYear());
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const base = vid ? `${y}${m}${d}_${vid}` : `${y}${m}${d}_tags`;
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'video_tag_session.json';
+    a.download = `${base}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

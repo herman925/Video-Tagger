@@ -11,6 +11,84 @@
   global._ytTimeInterval = global._ytTimeInterval || null;
   global._currentObjectUrl = global._currentObjectUrl || null;
 
+  const SPEED_OPTIONS = [1, 1.5, 2, 3];
+  let playbackSpeed = SPEED_OPTIONS.includes(Number(global.playbackSpeed))
+    ? Number(global.playbackSpeed)
+    : 1;
+  global.playbackSpeed = playbackSpeed;
+
+  function normalizeSpeed(value) {
+    const numeric = Number(value);
+    return SPEED_OPTIONS.includes(numeric) ? numeric : 1;
+  }
+
+  function syncSpeedPills(speed) {
+    const { speedPills } = player.getMediaElements();
+    if (!Array.isArray(speedPills)) return;
+    speedPills.forEach(pill => {
+      const pillSpeed = Number(pill?.dataset?.speed);
+      const isActive = pillSpeed === speed;
+      pill.classList.toggle('active', isActive);
+      pill.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function applyPlaybackSpeedInternal(speed, { updateUI = true } = {}) {
+    playbackSpeed = normalizeSpeed(speed);
+    global.playbackSpeed = playbackSpeed;
+
+    const { video } = player.getMediaElements();
+    if (video) {
+      try {
+        video.playbackRate = playbackSpeed;
+      } catch (err) {
+        console.warn('[video.js] Failed to set HTML5 playbackRate', err);
+      }
+    }
+
+    if (global.plyrInstance && typeof global.plyrInstance.speed !== 'undefined') {
+      try {
+        global.plyrInstance.speed = playbackSpeed;
+      } catch (err) {
+        console.warn('[video.js] Failed to set Plyr speed', err);
+      }
+    }
+
+    if (global.ytPlayer && typeof global.ytPlayer.setPlaybackRate === 'function') {
+      try {
+        const available = typeof global.ytPlayer.getAvailablePlaybackRates === 'function'
+          ? global.ytPlayer.getAvailablePlaybackRates()
+          : [];
+        let target = playbackSpeed;
+        if (Array.isArray(available) && available.length && !available.includes(playbackSpeed)) {
+          const sorted = available.slice().sort((a, b) => Math.abs(a - playbackSpeed) - Math.abs(b - playbackSpeed));
+          target = sorted[0] || 1;
+        }
+        global.ytPlayer.setPlaybackRate(target);
+      } catch (err) {
+        console.warn('[video.js] Unable to apply YouTube playback speed', err);
+      }
+    }
+
+    if (updateUI) syncSpeedPills(playbackSpeed);
+  }
+
+  function setupSpeedControls(elements) {
+    const { speedPills } = elements;
+    if (!Array.isArray(speedPills) || speedPills.length === 0) return;
+    speedPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const speed = Number(pill.dataset.speed);
+        applyPlaybackSpeedInternal(speed, { updateUI: true });
+      });
+    });
+    syncSpeedPills(playbackSpeed);
+  }
+
+  player.setPlaybackSpeed = (speed) => applyPlaybackSpeedInternal(speed, { updateUI: true });
+  player.applyPlaybackSpeed = () => applyPlaybackSpeedInternal(playbackSpeed, { updateUI: true });
+  global.applyPlaybackSpeed = player.applyPlaybackSpeed;
+
   function showPlayer() {
     const { player: playerContainer, timeline, html5Wrapper, youtubeContainer } = player.getMediaElements();
     const videoLoader = document.getElementById('video-loader') || document.getElementById('video-hero');
@@ -345,13 +423,17 @@
       
       // Enable tagging controls
       const startTagBtn = document.getElementById('start-tag-btn');
-      const tagInput = document.getElementById('tag-input');
       const remarksInput = document.getElementById('tag-remarks-input');
-      const languageButtons = document.querySelectorAll('.tag-language-checkbox');
+      const sessionLanguageButtons = document.querySelectorAll('.session-language-pill');
       if (startTagBtn) startTagBtn.disabled = false;
-      if (tagInput) tagInput.disabled = false;
       if (remarksInput) remarksInput.disabled = false;
-      languageButtons.forEach(btn => { btn.disabled = false; });
+      sessionLanguageButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+      });
+      if (typeof player.applyPlaybackSpeed === 'function') {
+        player.applyPlaybackSpeed();
+      }
       
       // Draw timeline
       if (typeof player.drawTimelineRuler === 'function') {
@@ -435,10 +517,8 @@
 
       const startTagBtn = document.getElementById('start-tag-btn');
       const endTagBtn = document.getElementById('end-tag-btn');
-      const tagInput = document.getElementById('tag-input');
       if (startTagBtn) startTagBtn.disabled = true;
       if (endTagBtn) endTagBtn.disabled = true;
-      if (tagInput) tagInput.disabled = true;
       if (startTagBtn) startTagBtn.textContent = 'Mark Start';
     });
   }
@@ -521,10 +601,8 @@
 
       const startTagBtn = document.getElementById('start-tag-btn');
       const endTagBtn = document.getElementById('end-tag-btn');
-      const tagInput = document.getElementById('tag-input');
       if (startTagBtn) startTagBtn.disabled = true;
       if (endTagBtn) endTagBtn.disabled = true;
-      if (tagInput) tagInput.disabled = true;
       if (startTagBtn) startTagBtn.textContent = 'Mark Start';
     });
   }
@@ -600,13 +678,17 @@
       }
     });
   }
-
   function initVideo() {
     console.log('[video.js] ===== initVideo() called =====');
     const elements = player.getMediaElements();
     const videoElement = elements.video;
-    
+
     console.log('[video.js] Video element:', videoElement);
+
+    setupSpeedControls(elements);
+    if (typeof player.applyPlaybackSpeed === 'function') {
+      player.applyPlaybackSpeed();
+    }
 
     attachAudioToggle(videoElement);
     attachAudioProgressHandlers(elements.audioProgress, elements.audioVolume, videoElement);

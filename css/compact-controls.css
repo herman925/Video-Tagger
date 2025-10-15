@@ -1,0 +1,158 @@
+/* Compact Controls Row Styling */
+
+.compact-controls-row {
+  --compact-control-height: 40px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr) minmax(220px, 1.2fr) auto;
+  column-gap: 16px;
+  row-gap: 8px;
+  align-items: end;
+  padding: 6px 0;
+  margin-bottom: 8px;
+}
+
+.compact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.compact-field .compact-input,
+.compact-field .form-input {
+  height: var(--compact-control-height);
+  line-height: var(--compact-control-height);
+}
+
+.compact-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.compact-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.compact-input {
+  padding: 0 12px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1e293b);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex: 1;
+  min-width: 0;
+  height: var(--compact-control-height);
+  line-height: var(--compact-control-height);
+  box-sizing: border-box;
+}
+
+.compact-input:focus {
+  outline: none;
+  border-color: var(--primary, #1173d4);
+  box-shadow: 0 0 0 3px rgba(17, 115, 212, 0.1);
+}
+
+.compact-btn {
+  padding: 0 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--primary, #1173d4);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+  height: var(--compact-control-height);
+  line-height: var(--compact-control-height);
+}
+
+.compact-btn:hover {
+  background: rgba(17, 115, 212, 0.9);
+}
+
+.compact-btn:active {
+  transform: translateY(1px);
+}
+
+.compact-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.compact-pills .lang-pill {
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  height: var(--compact-control-height);
+  line-height: var(--compact-control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compact-add-tag {
+  padding: 0 18px;
+  font-size: 14px;
+  white-space: nowrap;
+  align-self: stretch;
+  height: var(--compact-control-height);
+  line-height: var(--compact-control-height);
+}
+
+/* Dark theme support */
+body.dark-theme .compact-controls-row {
+  border-bottom-color: var(--neutral-800, #334155);
+}
+
+body.dark-theme .compact-label {
+  color: var(--neutral-400, #94a3b8);
+}
+
+body.dark-theme .compact-input {
+  background: var(--neutral-800, #1e293b);
+  border-color: var(--neutral-700, #334155);
+  color: var(--neutral-100, #f1f5f9);
+}
+
+body.dark-theme .compact-input:focus {
+  border-color: var(--primary, #1173d4);
+  box-shadow: 0 0 0 3px rgba(17, 115, 212, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .compact-controls-row {
+    gap: 12px;
+  }
+  
+  .compact-field:nth-child(3) {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .compact-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .compact-field {
+    width: 100%;
+  }
+  
+  .compact-add-tag {
+    align-self: stretch;
+  }
+}

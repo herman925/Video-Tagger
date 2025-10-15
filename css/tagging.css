@@ -11,17 +11,21 @@
 
 .tagging-grid {
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  grid-template-columns: var(--left-col, 50%) var(--right-col, 50%) !important;
   min-height: calc(100vh - 64px);
   height: auto;
   width: 100%;
   gap: 0;
   overflow: visible;
+  position: relative;
 }
 
 @media (max-width: 1023px) {
   .tagging-grid {
     grid-template-columns: 1fr !important;
+  }
+  .grid-divider {
+    display: none;
   }
 }
 
@@ -36,6 +40,43 @@
 
 .right-column {
   border-left: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.grid-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  cursor: col-resize;
+  z-index: 5;
+  background: transparent;
+  transition: background 0.2s ease;
+  left: calc(var(--left-col, 60%));
+  transform: translateX(-4px);
+}
+
+.grid-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.8);
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+}
+
+.grid-divider:hover,
+.grid-divider.dragging {
+  background: rgba(17, 115, 212, 0.12);
+}
+
+.grid-divider:hover::before,
+.grid-divider.dragging::before {
+  background: rgba(17, 115, 212, 0.9);
 }
 
 body.dark-theme .right-column {
@@ -236,6 +277,7 @@ body.dark-theme .timeline-strip {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .section-title {
@@ -271,6 +313,8 @@ body.dark-theme .form-label {
   color: var(--neutral-800);
   font-size: 0.875rem;
   font-family: inherit;
+  box-sizing: border-box;
+  line-height: 40px;
 }
 
 .form-input::placeholder {
@@ -344,37 +388,37 @@ body.dark-theme .form-textarea {
 
 .lang-pill {
   padding: 6px 12px;
-  border-radius: 6px;
-  border: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--neutral-200);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--neutral-100);
   color: var(--neutral-800);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .lang-pill.active {
-  background: rgba(17, 115, 212, 0.2);
-  color: var(--primary);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(17, 115, 212, 0.25);
 }
 
 .lang-pill:hover {
-  background: var(--neutral-300);
+  background: var(--neutral-200);
 }
 
 .lang-pill.active:hover {
-  background: rgba(17, 115, 212, 0.3);
+  background: rgba(17, 115, 212, 0.9);
 }
 
 body.dark-theme .lang-pill {
-  background: var(--neutral-700);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--neutral-200);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 body.dark-theme .lang-pill.active {
-  background: rgba(17, 115, 212, 0.2);
-  color: var(--primary);
+  background: var(--primary);
+  color: #fff;
 }
 
 /* Mark Buttons */
@@ -382,7 +426,7 @@ body.dark-theme .lang-pill.active {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .btn-primary,

@@ -189,6 +189,110 @@
   width: 100%;
 }
 
+.playback-speed-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.6));
+  padding: 4px 6px;
+  border-radius: 999px;
+}
+
+.speed-pill {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.speed-pill:hover,
+.speed-pill:focus-visible {
+  background: var(--bg-tertiary, rgba(17, 115, 212, 0.12));
+  color: var(--text-primary, #111);
+  outline: none;
+}
+
+.speed-pill.active {
+  background: var(--button-bg, #1173d4);
+  color: var(--button-text, #fff);
+  transform: translateY(-1px);
+}
+
+.preset-tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.preset-tag-pill {
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  background: var(--bg-secondary, #f9fafb);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.preset-tag-pill:hover,
+.preset-tag-pill:focus-visible {
+  outline: none;
+  border-color: var(--button-bg, #1173d4);
+  color: var(--button-bg, #1173d4);
+  background: rgba(17, 115, 212, 0.14);
+}
+
+.preset-tag-pill.active {
+  background: var(--button-bg, #1173d4);
+  border-color: var(--button-bg, #1173d4);
+  color: var(--button-text, #fff);
+  box-shadow: 0 6px 14px rgba(17, 115, 212, 0.28);
+  transform: translateY(-1px);
+}
+
+.selected-tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+}
+
+[data-theme="dark"] .playback-speed-control {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .speed-pill {
+  color: var(--text-secondary, #cbd5f5);
+}
+
+[data-theme="dark"] .speed-pill.active,
+[data-theme="dark"] .preset-tag-pill.active {
+  color: #fff;
+}
+
+[data-theme="dark"] .preset-tag-pill {
+  border-color: var(--border-color, #374151);
+  color: var(--text-secondary, #cbd5f5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .preset-tag-pill:hover,
+[data-theme="dark"] .preset-tag-pill:focus-visible {
+  border-color: var(--button-bg, #4a8ddc);
+  color: var(--button-bg, #4a8ddc);
+  background: rgba(74, 141, 220, 0.18);
+}
+
 .input-hidden {
   display: none;
 }

@@ -29,13 +29,14 @@
     else if (typeof global.showPlayer === 'function') global.showPlayer();
 
     const startTagBtn = document.getElementById('start-tag-btn');
-    const tagInput = document.getElementById('tag-input');
     const remarksInput = document.getElementById('tag-remarks-input');
-    const languageCheckboxes = document.querySelectorAll('.tag-language-checkbox');
+    const sessionLanguageButtons = document.querySelectorAll('.session-language-pill');
     if (startTagBtn) startTagBtn.disabled = false;
-    if (tagInput) tagInput.disabled = false;
     if (remarksInput) remarksInput.disabled = false;
-    languageCheckboxes.forEach(cb => cb.disabled = false);
+    sessionLanguageButtons.forEach(btn => {
+      btn.disabled = false;
+      btn.removeAttribute('aria-disabled');
+    });
 
     const elements = player.getMediaElements();
     // Don't override mediaMode - let it stay at default (audio)
@@ -64,7 +65,11 @@
     if (typeof global.updateAudioModeToggle === 'function') {
       global.updateAudioModeToggle();
     }
-    
+
+    if (typeof player.applyPlaybackSpeed === 'function') {
+      player.applyPlaybackSpeed();
+    }
+
     player.updateAudioControls('yt:onReady');
     player.drawTimelineRuler?.();
     player.logPlayerLayout?.('onPlayerReady');

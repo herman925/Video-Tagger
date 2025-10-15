@@ -148,7 +148,6 @@ button:disabled {
 
 body.player-active #video-layout {
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
   visibility: visible !important;
   opacity: 1 !important;
   height: auto !important;
@@ -354,27 +353,10 @@ body.dark-theme .hero-input {
 @media (max-width: 1360px) {
   /* Removed grid styles from #app-container to keep hero full width */
 
-  body.player-active #video-layout {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    min-height: calc(100vh - 64px);
-  }
-}
-
-@media (min-width: 1024px) {
-  body.player-active #video-layout {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 @media (min-width: 1120px) {
   /* Removed grid styles from #app-container to keep hero full width */
-
-  body.player-active #video-layout {
-    grid-template-columns: minmax(420px, 1fr);
-  }
 
   #player-column,
   #controls-column,

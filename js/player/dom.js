@@ -22,7 +22,9 @@
     audioVolume: document.getElementById('volume-slider'),
     audioBanner: document.getElementById('audio-mode-banner'),
     timeline: document.getElementById('timeline'),
-    controlsColumn: document.getElementById('controls-column')
+    controlsColumn: document.getElementById('controls-column'),
+    speedControl: document.querySelector('.playback-speed-control'),
+    speedPills: Array.from(document.querySelectorAll('.playback-speed-control .speed-pill'))
   };
 }
 

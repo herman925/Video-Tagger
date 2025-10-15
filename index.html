@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/tagsummary.css">
   <link rel="stylesheet" href="css/shortcut_help.css">
   <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/compact-controls.css">
   <!-- Demo alignment: Inter font and Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,6 +78,7 @@
         </div>
       </div>
       <div id="video-layout" class="tagging-grid">
+        <div class="grid-divider" id="grid-divider" role="separator" aria-orientation="vertical" aria-label="Resize panels" tabindex="0"></div>
         <div class="left-column">
           <!-- Video Player -->
           <div id="video-player" class="video-player">
@@ -105,48 +107,56 @@
               <span class="material-symbols-outlined">volume_up</span>
               <input type="range" id="volume-slider" class="volume-bar" min="0" max="100" value="100" aria-label="Volume">
             </div>
+            <div class="playback-speed-control" role="group" aria-label="Playback speed">
+              <button class="speed-pill active" data-speed="1" type="button" aria-pressed="true">1x</button>
+              <button class="speed-pill" data-speed="1.5" type="button" aria-pressed="false">1.5x</button>
+              <button class="speed-pill" data-speed="2" type="button" aria-pressed="false">2x</button>
+              <button class="speed-pill" data-speed="3" type="button" aria-pressed="false">3x</button>
+            </div>
           </div>
 
           <!-- Timeline Strip -->
           <div id="timeline" class="timeline-strip"></div>
 
-          <!-- Jump to Time -->
-          <div class="control-section">
-            <h3 class="section-title">Jump to Time</h3>
-            <div class="jump-controls">
-              <input type="text" id="jump-time-input" placeholder="HH:MM:SS.mmm" class="form-input">
-              <button id="jump-time-btn" class="btn-primary">Go</button>
-            </div>
-          </div>
-
-          <!-- Session Metadata -->
-          <div class="control-section">
-            <h3 class="section-title">Session Metadata</h3>
-            <label class="form-label">VID <span class="required">*</span></label>
-            <input type="text" id="vid-input" class="form-input" required>
-          </div>
-
-          <!-- Add Tag -->
-          <div class="control-section">
-            <h3 class="section-title">Add Tag</h3>
-            <button id="open-add-tag-modal-btn" class="btn-primary btn-full-width mb-16">+ Add Tags</button>
-            
-            <label class="form-label modal-section-label mt-16">Language</label>
-            <div class="language-selector">
-              <div class="language-pills">
-                <button class="lang-pill active tag-language-checkbox" data-lang="Cantonese">Cantonese</button>
-                <button class="lang-pill active tag-language-checkbox" data-lang="English">English</button>
-                <button class="lang-pill tag-language-checkbox" data-lang="Mandarin">Mandarin</button>
+          <!-- Compact Controls Row -->
+          <div class="compact-controls-row">
+            <div class="compact-field">
+              <label class="compact-label">Jump to</label>
+              <div class="compact-input-group">
+                <input type="text" id="jump-time-input" placeholder="HH:MM:SS" class="compact-input">
+                <button id="jump-time-btn" class="compact-btn">Go</button>
               </div>
             </div>
 
-            <label for="tag-remarks-input" class="form-label modal-section-label mt-16">Remarks</label>
-            <textarea id="tag-remarks-input" class="form-textarea" placeholder="Remarks (optional)" rows="3"></textarea>
-
-            <div class="mark-buttons">
-              <button id="start-tag-btn" class="btn-primary">Mark Start</button>
-              <button id="end-tag-btn" class="btn-neutral">Mark End</button>
+            <div class="compact-field">
+              <label class="compact-label">VID <span class="required">*</span></label>
+              <input type="text" id="vid-input" class="compact-input" required>
             </div>
+
+            <div class="compact-field">
+              <label class="compact-label">Languages</label>
+              <div class="language-pills compact-pills">
+                <button class="lang-pill session-language-pill" data-lang="Cantonese" data-default="true">Cant</button>
+                <button class="lang-pill session-language-pill" data-lang="English" data-default="true">Eng</button>
+                <button class="lang-pill session-language-pill" data-lang="Mandarin">Mand</button>
+              </div>
+            </div>
+
+            <div class="compact-field">
+              <button id="open-add-tag-modal-btn" class="btn-primary compact-add-tag">+ Add Tags</button>
+            </div>
+          </div>
+
+          <!-- Remarks Section -->
+          <div class="control-section">
+            <label for="tag-remarks-input" class="form-label">Remarks</label>
+            <textarea id="tag-remarks-input" class="form-textarea" placeholder="Remarks (optional)" rows="3"></textarea>
+          </div>
+
+          <!-- Mark Buttons -->
+          <div class="mark-buttons">
+            <button id="start-tag-btn" class="btn-primary">Mark Start</button>
+            <button id="end-tag-btn" class="btn-neutral">Mark End</button>
           </div>
         </div>
 
@@ -161,7 +171,6 @@
                   <tr>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Lang</th>
                     <th>Tag</th>
                     <th>Remarks</th>
                     <th>Del</th>
@@ -176,20 +185,11 @@
 
           <!-- Tag Summary -->
           <div class="table-section">
-            <div class="summary-header">
-              <h3 class="section-title">Tag Summary</h3>
-              <div class="summary-toggle summary-mode-toggle">
-                <button class="toggle-btn summary-mode-btn is-active" data-summary-mode="tag">By Tag</button>
-                <button class="toggle-btn summary-mode-btn" data-summary-mode="language">By Lang</button>
-              </div>
-            </div>
-            <div class="table-wrapper">
-              <table id="tag-summary-table" class="data-table">
+            <h3 class="section-title">Tag Summary</h3>
+            <div class="summary-table-wrapper">
+              <table id="tag-summary-table">
                 <thead>
-                  <tr>
-                    <th>Tag</th>
-                    <th>Frequency</th>
-                  </tr>
+                  <tr><th>Tag</th><th>Count</th></tr>
                 </thead>
                 <tbody id="tag-summary-body">
                   <!-- Summary rows will be inserted here -->
@@ -331,7 +331,7 @@
   <!-- Add Tag Modal (for initial tag creation) -->
   <div id="add-tag-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="add-tag-modal-title" hidden>
     <div class="modal-backdrop" data-add-tag-close></div>
-    <div class="modal-dialog" style="max-width: 600px;">
+    <div class="modal-dialog" style="max-width: 720px;">
       <div class="modal-content">
         <div class="modal-header">
           <h3 id="add-tag-modal-title">Add Tags</h3>
@@ -344,17 +344,15 @@
           
           <!-- Add Tag Section -->
           <div class="modal-section-spacing">
-            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Add Tag</label>
-            <button id="add-initial-tag-btn-open" class="btn-primary" type="button" style="width: 100%;">+ Add Tag</button>
-            <input type="text" id="add-initial-tag-input" class="form-input" placeholder="Enter tag and press Enter" style="margin-top: 8px; display: none;" />
-          </div>
-          
-          <!-- Tags List -->
-          <div style="margin-top: 24px;">
-            <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">Tags</h4>
-            <ul id="add-initial-tags-list" style="display: flex; flex-direction: column; gap: 12px; list-style: none; padding: 0; margin: 0;">
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);">Select Tags</label>
+            <div id="add-initial-tags-list" class="preset-tags-grid" style="max-height: 260px; overflow-y: auto;">
               <!-- Tags will be dynamically populated here -->
-            </ul>
+            </div>
+          </div>
+
+          <!-- Tags List -->
+          <div style="margin-top: 24px; color: var(--text-secondary); font-size: 14px;">
+            Selected tags will be applied when marking intervals.
           </div>
         </div>
         <div class="modal-footer">
@@ -415,20 +413,21 @@
           
           <!-- Add New Tag Section -->
           <div class="modal-section-spacing">
-            <label class="modal-section-label">Add New Tag</label>
-            <button id="add-tag-btn-open" class="btn-primary btn-full-width" type="button">+ Add Tag</button>
-            <input type="text" id="new-tag-input" class="form-input mt-8 input-hidden" placeholder="Enter tag and press Enter" />
+            <label class="modal-section-label">Select Tags</label>
+            <div id="tag-label-options-list" class="preset-tags-grid" style="max-height: 260px; overflow-y: auto;">
+              <!-- Tag options will be dynamically populated here -->
+            </div>
           </div>
-          
+
           <!-- Divider -->
           <div class="modal-divider"></div>
-          
+
           <!-- Existing Tags Section -->
           <div>
-            <h4 class="modal-section-title">Existing Tags</h4>
-            <ul id="existing-tags-list" style="display: flex; flex-direction: column; gap: 12px; list-style: none; padding: 0; margin: 0;">
-              <!-- Tags will be dynamically populated here -->
-            </ul>
+            <h4 class="modal-section-title">Selected Tags</h4>
+            <div id="existing-tags-list" class="selected-tags-display">
+              <!-- Selected tags summary -->
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -439,42 +438,5 @@
     </div>
   </div>
 
-  <!-- Language Editing Modal -->
-  <div id="language-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="language-modal-title" hidden>
-    <div class="modal-backdrop" data-language-close></div>
-    <div class="modal-dialog" style="max-width: 500px;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="language-modal-title">Edit Language(s)</h3>
-          <button class="icon-btn" data-language-close type="button" aria-label="Close">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <fieldset style="border: none; padding: 0;">
-            <legend style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">Languages</legend>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; cursor: pointer;">
-                <span style="font-weight: 500; color: var(--text-primary);">Cantonese</span>
-                <input type="checkbox" class="lang-modal-checkbox" data-lang="Cantonese" style="width: 20px; height: 20px; cursor: pointer;" />
-              </label>
-              <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; cursor: pointer;">
-                <span style="font-weight: 500; color: var(--text-primary);">English</span>
-                <input type="checkbox" class="lang-modal-checkbox" data-lang="English" style="width: 20px; height: 20px; cursor: pointer;" />
-              </label>
-              <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; cursor: pointer;">
-                <span style="font-weight: 500; color: var(--text-primary);">Mandarin</span>
-                <input type="checkbox" class="lang-modal-checkbox" data-lang="Mandarin" style="width: 20px; height: 20px; cursor: pointer;" />
-              </label>
-            </div>
-          </fieldset>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-outline" data-language-close type="button">Cancel</button>
-          <button id="language-save-btn" class="btn-primary" type="button">Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
